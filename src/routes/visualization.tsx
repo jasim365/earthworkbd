@@ -105,7 +105,7 @@ function VisualizationPage() {
         </CardHeader>
         <CardContent className="h-[420px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
+            <LineChart data={data} margin={{ top: 10, right: 20, bottom: 32, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
               <XAxis
                 dataKey="distance"
