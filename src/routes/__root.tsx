@@ -11,6 +11,11 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/sonner";
+import { AppSidebar } from "@/components/app-sidebar";
+import { ProjectSwitcher } from "@/components/project-switcher";
+
 
 function NotFoundComponent() {
   return (
@@ -77,14 +82,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Earthwork Estimation Pro" },
+      {
+        name: "description",
+        content:
+          "Professional canal and embankment earthwork estimation — design configuration, survey data, mean-area analysis and reports.",
+      },
+      { name: "author", content: "Earthwork Estimation Pro" },
+      { property: "og:title", content: "Earthwork Estimation Pro" },
+      {
+        property: "og:description",
+        content: "Canal & embankment earthwork estimation and progress tracking suite.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -94,6 +105,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -119,8 +131,23 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full bg-background">
+          <AppSidebar />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border bg-card/80 px-3 backdrop-blur print:hidden">
+              <SidebarTrigger />
+              <ProjectSwitcher />
+            </header>
+            <main className="flex-1 p-4 md:p-6">
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <Outlet />
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
+      <Toaster position="top-right" />
     </QueryClientProvider>
+
   );
 }
