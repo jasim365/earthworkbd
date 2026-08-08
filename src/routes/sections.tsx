@@ -169,10 +169,12 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">CH</span>
                   <Input
                     type="number"
                     step="0.001"
-                    className="h-8 w-28 tabular-nums"
+                    aria-label="Chainage"
+                    className="h-8 w-24 tabular-nums"
                     value={s.chainage}
                     onChange={(e) =>
                       write(
@@ -182,6 +184,29 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
                       )
                     }
                   />
+                  <span className="text-xs text-muted-foreground">CL Dist.</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    aria-label="Center line distance"
+                    placeholder="auto"
+                    className="h-8 w-24 tabular-nums"
+                    value={s.clDist ?? ""}
+                    onChange={(e) =>
+                      write(
+                        sections.map((x) =>
+                          x.id === s.id
+                            ? {
+                                ...x,
+                                clDist:
+                                  e.target.value === "" ? undefined : Number(e.target.value),
+                              }
+                            : x,
+                        ),
+                      )
+                    }
+                  />
+
                   <Button
                     size="icon"
                     variant="ghost"
