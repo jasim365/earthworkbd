@@ -154,7 +154,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
 
       <div className="grid gap-4 xl:grid-cols-2">
         {sections.map((s) => {
-          const area = sectionArea(s.points, designProfile(s.points, project.config));
+          const area = sectionArea(s.points, designProfile(s, project.config));
           return (
             <Card key={s.id}>
               <CardHeader className="flex flex-row items-center justify-between gap-2">
@@ -169,10 +169,12 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">CH</span>
                   <Input
                     type="number"
                     step="0.001"
-                    className="h-8 w-28 tabular-nums"
+                    aria-label="Chainage"
+                    className="h-8 w-24 tabular-nums"
                     value={s.chainage}
                     onChange={(e) =>
                       write(
@@ -182,6 +184,28 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
                       )
                     }
                   />
+                  <span className="text-xs text-muted-foreground">CL Dist.</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    aria-label="Center line distance"
+                    placeholder="auto"
+                    className="h-8 w-24 tabular-nums"
+                    value={s.clDist ?? ""}
+                    onChange={(e) =>
+                      write(
+                        sections.map((x) => {
+                          if (x.id !== s.id) return x;
+                          const next: SectionData = { ...x };
+                          if (e.target.value === "") delete next.clDist;
+                          else next.clDist = Number(e.target.value);
+                          return next;
+                        }),
+                      )
+                    }
+                  />
+
+
                   <Button
                     size="icon"
                     variant="ghost"
