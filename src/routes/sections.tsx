@@ -194,18 +194,17 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
                     value={s.clDist ?? ""}
                     onChange={(e) =>
                       write(
-                        sections.map((x) =>
-                          x.id === s.id
-                            ? {
-                                ...x,
-                                clDist:
-                                  e.target.value === "" ? undefined : Number(e.target.value),
-                              }
-                            : x,
-                        ),
+                        sections.map((x) => {
+                          if (x.id !== s.id) return x;
+                          const next: SectionData = { ...x };
+                          if (e.target.value === "") delete next.clDist;
+                          else next.clDist = Number(e.target.value);
+                          return next;
+                        }),
                       )
                     }
                   />
+
 
                   <Button
                     size="icon"
