@@ -70,14 +70,34 @@ function ReportsPage() {
         title="Estimate Reports"
         subtitle={`${project.name} — ${project.location}`}
         action={
-          <div className="flex gap-2 print:hidden">
+          <div className="flex flex-wrap gap-2 print:hidden">
             <Button variant="outline" onClick={exportCsv}>
               <Download className="size-4" /> CSV
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() =>
+                exportWorkbook(project)
+                  .then(() => toast.success("BWDB Excel workbook exported"))
+                  .catch((e) => toast.error("Excel export failed", { description: String(e) }))
+              }
+            >
+              <FileSpreadsheet className="size-4" /> Excel (BWDB)
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                exportDxf(project);
+                toast.success("DXF drawing exported");
+              }}
+            >
+              <PenTool className="size-4" /> DXF
             </Button>
             <Button onClick={() => window.print()}>
               <Printer className="size-4" /> Print
             </Button>
           </div>
+
         }
       />
 
