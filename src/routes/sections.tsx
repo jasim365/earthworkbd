@@ -73,6 +73,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
   const sections = project[kind];
   const unit = project.config.chainageUnit;
   const [nextCh, setNextCh] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const write = (next: SectionData[]) => updateProject(project.id, { [kind]: next } as Partial<Project>);
 
@@ -84,6 +85,28 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
     }
     write([...sections, newSection(ch)].sort((a, b) => a.chainage - b.chainage));
     setNextCh("");
+  };
+
+  const onImport = async (file: File) => {
+    const text = await file.text();
+    const { sections: imported, rows, errors } = parseSurveyCsv(text);
+    if (imported.length === 0) {
+      toast.error("No valid rows found", { description: errors[0] });
+      return;
+    }
+    write(mergeSections(sections, imported));
+    toast.success(`Imported ${rows} points across ${imported.length} chainages`, {
+      description: errors.length ? `${errors.length} row(s) skipped` : undefined,
+    });
+  };
+
+  const downloadTemplate = () => {
+    const url = URL.createObjectURL(new Blob([SURVEY_CSV_TEMPLATE], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `survey-template-${kind}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -98,7 +121,28 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
         <Button onClick={addSection}>
           <Plus className="size-4" /> Add section
         </Button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,text/csv"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void onImport(f);
+            e.target.value = "";
+          }}
+        />
+        <Button variant="outline" onClick={() => fileRef.current?.click()}>
+          <Upload className="size-4" /> Import CSV
+        </Button>
+        <Button variant="ghost" onClick={downloadTemplate}>
+          <Download className="size-4" /> Template
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          Columns: chainage ({unit}), distance (m), RL (m)
+        </span>
       </div>
+
 
       {sections.length === 0 && (
         <Card>
