@@ -154,7 +154,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
 
       <div className="grid gap-4 xl:grid-cols-2">
         {sections.map((s) => {
-          const area = sectionArea(s.points, designProfile(s.points, project.config));
+          const area = sectionArea(s.points, designProfile(s, project.config));
           return (
             <Card key={s.id}>
               <CardHeader className="flex flex-row items-center justify-between gap-2">
