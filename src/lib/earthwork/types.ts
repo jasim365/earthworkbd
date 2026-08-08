@@ -103,9 +103,9 @@ export const defaultConfig = (): DesignConfig => ({
 /** Merge stored (possibly legacy) configs with the current shape. */
 export function normalizeConfig(cfg: Partial<DesignConfig> & Record<string, unknown>): DesignConfig {
   const base = defaultConfig();
-  const legacyLevel = typeof cfg.bedLevel === "number" ? cfg.bedLevel : undefined;
-  const legacyWidth = typeof cfg.bedWidth === "number" ? cfg.bedWidth : undefined;
-  const legacySlope = typeof cfg.sideSlope === "number" ? cfg.sideSlope : undefined;
+  const legacyLevel = typeof cfg["bedLevel"] === "number" ? (cfg["bedLevel"] as number) : undefined;
+  const legacyWidth = typeof cfg["bedWidth"] === "number" ? (cfg["bedWidth"] as number) : undefined;
+  const legacySlope = typeof cfg["sideSlope"] === "number" ? (cfg["sideSlope"] as number) : undefined;
   return {
     ...base,
     ...cfg,
