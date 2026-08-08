@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
+  Area,
   CartesianGrid,
+  ComposedChart,
   Legend,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -12,6 +13,7 @@ import {
 } from "recharts";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -23,22 +25,25 @@ import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/page-header";
 import { NoProject } from "@/components/no-project";
 import { useActiveProject } from "@/lib/earthwork/store";
-import { designProfile, sectionArea, interpAt, fmt } from "@/lib/earthwork/calc";
+import { designProfile, sectionAreas, interpAt, fmt } from "@/lib/earthwork/calc";
+import { rgbToHex } from "@/lib/earthwork/types";
 
 export const Route = createFileRoute("/visualization")({
   head: () => ({
     meta: [
-      { title: "Cross-Section Visualization | Earthwork Estimation Pro" },
+      { title: "Cross-Section Charts | BWDB Earthwork Estimator" },
       {
         name: "description",
         content:
-          "Plot pre-work, design and post-work canal cross-section profiles on an interactive X-Y chart.",
+          "Interactive XY cross-section plotter showing pre-work, design and post-work profiles with shaded cut and fill regions.",
       },
-      { property: "og:title", content: "Cross-Section Visualization | Earthwork Estimation Pro" },
+      { property: "og:title", content: "Cross-Section Charts | BWDB Earthwork Estimator" },
       {
         property: "og:description",
-        content: "Interactive cross-section plots of pre-work, design and post-work profiles.",
+        content: "Plot pre-work, design and post-work profiles with cut/fill shading per chainage.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: VisualizationPage,
@@ -53,7 +58,12 @@ function VisualizationPage() {
   const pre = project.pre[i];
   const post = project.post[i];
   const cfg = project.config;
-  const design = pre ? designProfile(pre.points, cfg) : [];
+  const design = pre ? designProfile(pre, cfg) : [];
+  const areas = pre ? sectionAreas(pre.points, design) : { cut: 0, fill: 0, net: 0 };
+
+  const preColor = rgbToHex(cfg.colorPre);
+  const postColor = rgbToHex(cfg.colorPostAdjusted);
+  const designColor = rgbToHex(cfg.colorDesign);
 
   const distances = Array.from(
     new Set([
@@ -63,33 +73,48 @@ function VisualizationPage() {
     ]),
   ).sort((a, b) => a - b);
 
-  const data = distances.map((d) => ({
-    distance: d,
-    pre: interpAt(pre?.points ?? [], d) ?? undefined,
-    post: interpAt(post?.points ?? [], d) ?? undefined,
-    design: interpAt(design, d) ?? undefined,
-  }));
+  const data = distances.map((d) => {
+    const g = interpAt(pre?.points ?? [], d);
+    const dz = interpAt(design, d);
+    const cutRange = g !== null && dz !== null && g > dz ? [dz, g] : null;
+    const fillRange = g !== null && dz !== null && dz > g ? [g, dz] : null;
+    return {
+      distance: d,
+      pre: g ?? undefined,
+      post: interpAt(post?.points ?? [], d) ?? undefined,
+      design: dz ?? undefined,
+      cutRange,
+      fillRange,
+    };
+  });
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Cross-Section Visualization"
-        subtitle="Pre-work ground, design template and post-work ground profiles."
+        title="Cross-Section Charts"
+        subtitle="XY plot of pre-work ground, design template and post-work profiles with cut / fill shading."
       />
-      <div className="w-64 space-y-2">
-        <Label>Chainage</Label>
-        <Select value={idx} onValueChange={setIdx}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select chainage" />
-          </SelectTrigger>
-          <SelectContent>
-            {project.pre.map((s, n) => (
-              <SelectItem key={s.id} value={String(n)}>
-                CH {s.chainage} {cfg.chainageUnit}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="w-64 space-y-2">
+          <Label>Chainage</Label>
+          <Select value={idx} onValueChange={setIdx}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select chainage" />
+            </SelectTrigger>
+            <SelectContent>
+              {project.pre.map((s, n) => (
+                <SelectItem key={s.id} value={String(n)}>
+                  CH {s.chainage} {cfg.chainageUnit}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex gap-2">
+          <Badge variant="secondary">Cut {fmt(areas.cut)} m²</Badge>
+          <Badge variant="secondary">Fill {fmt(areas.fill)} m²</Badge>
+          <Badge>Net {fmt(areas.net)} m²</Badge>
+        </div>
       </div>
 
       <Card>
@@ -99,13 +124,13 @@ function VisualizationPage() {
           </CardTitle>
           <CardDescription>
             {pre
-              ? `Cut area vs design: ${fmt(sectionArea(pre.points, design))} m²`
+              ? "X = offset distance (m), Y = reduced level (mSOB)."
               : "Add pre-work sections to plot cross-sections."}
           </CardDescription>
         </CardHeader>
-        <CardContent className="h-[420px]">
+        <CardContent className="h-[440px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 10, right: 20, bottom: 32, left: 0 }}>
+            <ComposedChart data={data} margin={{ top: 10, right: 20, bottom: 32, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
               <XAxis
                 dataKey="distance"
@@ -117,7 +142,7 @@ function VisualizationPage() {
               <YAxis
                 tick={{ fontSize: 12 }}
                 domain={["auto", "auto"]}
-                label={{ value: "RL (m)", angle: -90, position: "insideLeft", fontSize: 12 }}
+                label={{ value: "RL (mSOB)", angle: -90, position: "insideLeft", fontSize: 12 }}
               />
               <Tooltip
                 contentStyle={{
@@ -128,11 +153,31 @@ function VisualizationPage() {
                 }}
               />
               <Legend />
+              <Area
+                dataKey="cutRange"
+                name="Cut"
+                stroke="none"
+                fill={preColor}
+                fillOpacity={0.18}
+                connectNulls={false}
+                isAnimationActive={false}
+                activeDot={false}
+              />
+              <Area
+                dataKey="fillRange"
+                name="Fill"
+                stroke="none"
+                fill={postColor}
+                fillOpacity={0.18}
+                connectNulls={false}
+                isAnimationActive={false}
+                activeDot={false}
+              />
               <Line
                 type="linear"
                 dataKey="pre"
                 name="Pre-work"
-                stroke="var(--color-chart-1)"
+                stroke={preColor}
                 strokeWidth={2}
                 connectNulls
                 isAnimationActive={false}
@@ -142,24 +187,26 @@ function VisualizationPage() {
                 type="linear"
                 dataKey="design"
                 name="Design"
-                stroke="var(--color-chart-2)"
+                stroke={designColor}
                 strokeWidth={2}
                 strokeDasharray="6 4"
                 connectNulls
                 isAnimationActive={false}
                 dot={false}
               />
-              <Line
-                type="linear"
-                dataKey="post"
-                name="Post-work"
-                stroke="var(--color-chart-3)"
-                strokeWidth={2}
-                connectNulls
-                isAnimationActive={false}
-                dot={{ r: 3 }}
-              />
-            </LineChart>
+              {cfg.calculateProgress && (
+                <Line
+                  type="linear"
+                  dataKey="post"
+                  name="Post-work"
+                  stroke={postColor}
+                  strokeWidth={2}
+                  connectNulls
+                  isAnimationActive={false}
+                  dot={{ r: 3 }}
+                />
+              )}
+            </ComposedChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
