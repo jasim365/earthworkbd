@@ -157,9 +157,24 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
         <Button variant="outline" onClick={() => fileRef.current?.click()}>
           <Upload className="size-4" /> Import CSV
         </Button>
+        <input
+          ref={xlsxRef}
+          type="file"
+          accept=".xlsx"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void onImportWorkbook(f);
+            e.target.value = "";
+          }}
+        />
+        <Button variant="outline" onClick={() => xlsxRef.current?.click()}>
+          <FileSpreadsheet className="size-4" /> Import Chart_Datasets.xlsx
+        </Button>
         <Button variant="ghost" onClick={downloadTemplate}>
           <Download className="size-4" /> Template
         </Button>
+
         <span className="text-xs text-muted-foreground">
           Columns: chainage ({unit}), distance (m), RL (m)
         </span>
