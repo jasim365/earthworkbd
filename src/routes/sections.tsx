@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Plus, Trash2, Upload, Download } from "lucide-react";
+import { Plus, Trash2, Upload, Download, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ import { useActiveProject, updateProject, newSection, newPoint } from "@/lib/ear
 import type { Project, SectionData } from "@/lib/earthwork/types";
 import { designProfile, sectionArea, fmt } from "@/lib/earthwork/calc";
 import { parseSurveyCsv, mergeSections, SURVEY_CSV_TEMPLATE } from "@/lib/earthwork/csv";
+import { parseChartDatasetsWorkbook } from "@/lib/earthwork/xlsx-import";
+
 
 
 export const Route = createFileRoute("/sections")({
@@ -74,6 +76,8 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
   const unit = project.config.chainageUnit;
   const [nextCh, setNextCh] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const xlsxRef = useRef<HTMLInputElement>(null);
+
 
   const write = (next: SectionData[]) => updateProject(project.id, { [kind]: next } as Partial<Project>);
 
@@ -100,6 +104,25 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
     });
   };
 
+  const onImportWorkbook = async (file: File) => {
+    try {
+      const res = await parseChartDatasetsWorkbook(file);
+      if (res.points === 0) {
+        toast.error("No X-Y values found in Chart_Datasets", { description: res.errors[0] });
+        return;
+      }
+      const patch: Partial<Project> = {};
+      if (res.pre.length) patch.pre = mergeSections(project.pre, res.pre);
+      if (res.post.length) patch.post = mergeSections(project.post, res.post);
+      updateProject(project.id, patch);
+      toast.success(`Imported ${res.points} points — charts and volumes recalculated`, {
+        description: `${res.pre.length} pre-work and ${res.post.length} post-work chainages updated`,
+      });
+    } catch {
+      toast.error("Could not read that workbook", { description: "Expected an .xlsx exported by this app" });
+    }
+  };
+
   const downloadTemplate = () => {
     const url = URL.createObjectURL(new Blob([SURVEY_CSV_TEMPLATE], { type: "text/csv" }));
     const a = document.createElement("a");
@@ -108,6 +131,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
     a.click();
     URL.revokeObjectURL(url);
   };
+
 
   return (
     <div className="space-y-4">
@@ -135,9 +159,24 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
         <Button variant="outline" onClick={() => fileRef.current?.click()}>
           <Upload className="size-4" /> Import CSV
         </Button>
+        <input
+          ref={xlsxRef}
+          type="file"
+          accept=".xlsx"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void onImportWorkbook(f);
+            e.target.value = "";
+          }}
+        />
+        <Button variant="outline" onClick={() => xlsxRef.current?.click()}>
+          <FileSpreadsheet className="size-4" /> Import Chart_Datasets.xlsx
+        </Button>
         <Button variant="ghost" onClick={downloadTemplate}>
           <Download className="size-4" /> Template
         </Button>
+
         <span className="text-xs text-muted-foreground">
           Columns: chainage ({unit}), distance (m), RL (m)
         </span>
