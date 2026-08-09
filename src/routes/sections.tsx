@@ -76,6 +76,8 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
   const unit = project.config.chainageUnit;
   const [nextCh, setNextCh] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const xlsxRef = useRef<HTMLInputElement>(null);
+
 
   const write = (next: SectionData[]) => updateProject(project.id, { [kind]: next } as Partial<Project>);
 
