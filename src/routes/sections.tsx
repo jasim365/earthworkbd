@@ -100,6 +100,25 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
     });
   };
 
+  const onImportWorkbook = async (file: File) => {
+    try {
+      const res = await parseChartDatasetsWorkbook(file);
+      if (res.points === 0) {
+        toast.error("No X-Y values found in Chart_Datasets", { description: res.errors[0] });
+        return;
+      }
+      const patch: Partial<Project> = {};
+      if (res.pre.length) patch.pre = mergeSections(project.pre, res.pre);
+      if (res.post.length) patch.post = mergeSections(project.post, res.post);
+      updateProject(project.id, patch);
+      toast.success(`Imported ${res.points} points — charts and volumes recalculated`, {
+        description: `${res.pre.length} pre-work and ${res.post.length} post-work chainages updated`,
+      });
+    } catch {
+      toast.error("Could not read that workbook", { description: "Expected an .xlsx exported by this app" });
+    }
+  };
+
   const downloadTemplate = () => {
     const url = URL.createObjectURL(new Blob([SURVEY_CSV_TEMPLATE], { type: "text/csv" }));
     const a = document.createElement("a");
@@ -108,6 +127,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
     a.click();
     URL.revokeObjectURL(url);
   };
+
 
   return (
     <div className="space-y-4">
