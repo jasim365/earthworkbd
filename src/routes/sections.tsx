@@ -198,6 +198,34 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
         </span>
       </div>
 
+      {issues.length > 0 && (
+        <Card className="border-destructive/40">
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <CardTitle className="text-base">
+              Workbook check —{" "}
+              {issues.filter((i) => i.severity === "error").length} error(s),{" "}
+              {issues.filter((i) => i.severity === "warning").length} warning(s)
+            </CardTitle>
+            <Button size="sm" variant="ghost" onClick={() => setIssues([])}>
+              Dismiss
+            </Button>
+          </CardHeader>
+          <CardContent className="max-h-64 space-y-2 overflow-auto text-sm">
+            {issues.map((i, k) => (
+              <div key={k} className="flex items-start gap-2">
+                <Badge variant={i.severity === "error" ? "destructive" : "secondary"}>
+                  {i.severity}
+                </Badge>
+                <span className="font-mono text-xs text-muted-foreground">{i.where}</span>
+                <span className="flex-1">{i.message}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+
+
 
       {sections.length === 0 && (
         <Card>
