@@ -22,7 +22,7 @@ import { useActiveProject, updateProject, newSection, newPoint } from "@/lib/ear
 import type { Project, SectionData } from "@/lib/earthwork/types";
 import { designProfile, sectionArea, fmt } from "@/lib/earthwork/calc";
 import { parseSurveyCsv, mergeSections, SURVEY_CSV_TEMPLATE } from "@/lib/earthwork/csv";
-import { parseChartDatasetsWorkbook } from "@/lib/earthwork/xlsx-import";
+import { parseChartDatasetsWorkbook, type ImportIssue } from "@/lib/earthwork/xlsx-import";
 
 
 
