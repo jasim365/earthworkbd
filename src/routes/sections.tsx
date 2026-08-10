@@ -105,23 +105,38 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
   };
 
   const onImportWorkbook = async (file: File) => {
+    setIssues([]);
+    let res: Awaited<ReturnType<typeof parseChartDatasetsWorkbook>>;
     try {
-      const res = await parseChartDatasetsWorkbook(file);
-      if (res.points === 0) {
-        toast.error("No X-Y values found in Chart_Datasets", { description: res.errors[0] });
-        return;
-      }
-      const patch: Partial<Project> = {};
-      if (res.pre.length) patch.pre = mergeSections(project.pre, res.pre);
-      if (res.post.length) patch.post = mergeSections(project.post, res.post);
-      updateProject(project.id, patch);
-      toast.success(`Imported ${res.points} points — charts and volumes recalculated`, {
-        description: `${res.pre.length} pre-work and ${res.post.length} post-work chainages updated`,
-      });
+      res = await parseChartDatasetsWorkbook(file);
     } catch {
-      toast.error("Could not read that workbook", { description: "Expected an .xlsx exported by this app" });
+      setIssues([
+        { severity: "error", where: file.name, message: "Unexpected error while reading the workbook." },
+      ]);
+      toast.error("Could not read that workbook");
+      return;
     }
+    setIssues(res.issues);
+    const errorCount = res.issues.filter((i) => i.severity === "error").length;
+
+    if (!res.ok) {
+      toast.error("Import failed", {
+        description: res.errors[0] ?? "No valid X-Y values found in Chart_Datasets.",
+      });
+      return;
+    }
+
+    const patch: Partial<Project> = {};
+    if (res.pre.length) patch.pre = mergeSections(project.pre, res.pre);
+    if (res.post.length) patch.post = mergeSections(project.post, res.post);
+    updateProject(project.id, patch);
+    toast.success(`Imported ${res.points} points — charts and volumes recalculated`, {
+      description:
+        `${res.pre.length} pre-work and ${res.post.length} post-work chainages updated` +
+        (errorCount ? ` · ${errorCount} cell(s) skipped` : ""),
+    });
   };
+
 
   const downloadTemplate = () => {
     const url = URL.createObjectURL(new Blob([SURVEY_CSV_TEMPLATE], { type: "text/csv" }));
