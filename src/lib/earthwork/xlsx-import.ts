@@ -147,20 +147,21 @@ export async function parseChartDatasetsWorkbook(file: File): Promise<ChartDatas
       push("error", ref(4, c), `Header "${head}" is malformed. Expected "Pre-work X", "Pre-work Y", "Post-work X" or "Post-work Y".`);
       continue;
     }
-    const label = parsed[1].trim().toLowerCase();
-    const axis = parsed[2].toUpperCase();
+    const name = (parsed[1] ?? "").trim();
+    const label = name.toLowerCase();
+    const axis = (parsed[2] ?? "").toUpperCase();
     if (axis === "Y") continue; // handled with its X partner
 
     const target = label.startsWith("pre") ? preMap : label.startsWith("post") ? postMap : null;
     if (!target) {
       if (!label.startsWith("design"))
-        push("warning", ref(4, c), `Unknown dataset "${parsed[1].trim()}" ignored — only Pre-work and Post-work are imported.`);
+        push("warning", ref(4, c), `Unknown dataset "${name}" ignored — only Pre-work and Post-work are imported.`);
       continue;
     }
 
     const partner = cellText(headRow.getCell(c + 1).value).trim();
-    if (!new RegExp(`^${parsed[1].trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+Y$`, "i").test(partner)) {
-      push("error", ref(4, c + 1), `Column "${head}" has no matching "${parsed[1].trim()} Y" column beside it (found "${partner || "empty"}").`);
+    if (!new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+Y$`, "i").test(partner)) {
+      push("error", ref(4, c + 1), `Column "${head}" has no matching "${name} Y" column beside it (found "${partner || "empty"}").`);
       continue;
     }
 
