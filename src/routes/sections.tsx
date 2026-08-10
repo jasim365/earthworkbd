@@ -75,6 +75,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
   const sections = project[kind];
   const unit = project.config.chainageUnit;
   const [nextCh, setNextCh] = useState("");
+  const [issues, setIssues] = useState<ImportIssue[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const xlsxRef = useRef<HTMLInputElement>(null);
 
