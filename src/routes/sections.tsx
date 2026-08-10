@@ -22,7 +22,7 @@ import { useActiveProject, updateProject, newSection, newPoint } from "@/lib/ear
 import type { Project, SectionData } from "@/lib/earthwork/types";
 import { designProfile, sectionArea, fmt } from "@/lib/earthwork/calc";
 import { parseSurveyCsv, mergeSections, SURVEY_CSV_TEMPLATE } from "@/lib/earthwork/csv";
-import { parseChartDatasetsWorkbook } from "@/lib/earthwork/xlsx-import";
+import { parseChartDatasetsWorkbook, type ImportIssue } from "@/lib/earthwork/xlsx-import";
 
 
 
@@ -75,6 +75,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
   const sections = project[kind];
   const unit = project.config.chainageUnit;
   const [nextCh, setNextCh] = useState("");
+  const [issues, setIssues] = useState<ImportIssue[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const xlsxRef = useRef<HTMLInputElement>(null);
 
@@ -105,23 +106,38 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
   };
 
   const onImportWorkbook = async (file: File) => {
+    setIssues([]);
+    let res: Awaited<ReturnType<typeof parseChartDatasetsWorkbook>>;
     try {
-      const res = await parseChartDatasetsWorkbook(file);
-      if (res.points === 0) {
-        toast.error("No X-Y values found in Chart_Datasets", { description: res.errors[0] });
-        return;
-      }
-      const patch: Partial<Project> = {};
-      if (res.pre.length) patch.pre = mergeSections(project.pre, res.pre);
-      if (res.post.length) patch.post = mergeSections(project.post, res.post);
-      updateProject(project.id, patch);
-      toast.success(`Imported ${res.points} points — charts and volumes recalculated`, {
-        description: `${res.pre.length} pre-work and ${res.post.length} post-work chainages updated`,
-      });
+      res = await parseChartDatasetsWorkbook(file);
     } catch {
-      toast.error("Could not read that workbook", { description: "Expected an .xlsx exported by this app" });
+      setIssues([
+        { severity: "error", where: file.name, message: "Unexpected error while reading the workbook." },
+      ]);
+      toast.error("Could not read that workbook");
+      return;
     }
+    setIssues(res.issues);
+    const errorCount = res.issues.filter((i) => i.severity === "error").length;
+
+    if (!res.ok) {
+      toast.error("Import failed", {
+        description: res.errors[0] ?? "No valid X-Y values found in Chart_Datasets.",
+      });
+      return;
+    }
+
+    const patch: Partial<Project> = {};
+    if (res.pre.length) patch.pre = mergeSections(project.pre, res.pre);
+    if (res.post.length) patch.post = mergeSections(project.post, res.post);
+    updateProject(project.id, patch);
+    toast.success(`Imported ${res.points} points — charts and volumes recalculated`, {
+      description:
+        `${res.pre.length} pre-work and ${res.post.length} post-work chainages updated` +
+        (errorCount ? ` · ${errorCount} cell(s) skipped` : ""),
+    });
   };
+
 
   const downloadTemplate = () => {
     const url = URL.createObjectURL(new Blob([SURVEY_CSV_TEMPLATE], { type: "text/csv" }));
@@ -181,6 +197,34 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
           Columns: chainage ({unit}), distance (m), RL (m)
         </span>
       </div>
+
+      {issues.length > 0 && (
+        <Card className="border-destructive/40">
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <CardTitle className="text-base">
+              Workbook check —{" "}
+              {issues.filter((i) => i.severity === "error").length} error(s),{" "}
+              {issues.filter((i) => i.severity === "warning").length} warning(s)
+            </CardTitle>
+            <Button size="sm" variant="ghost" onClick={() => setIssues([])}>
+              Dismiss
+            </Button>
+          </CardHeader>
+          <CardContent className="max-h-64 space-y-2 overflow-auto text-sm">
+            {issues.map((i, k) => (
+              <div key={k} className="flex items-start gap-2">
+                <Badge variant={i.severity === "error" ? "destructive" : "secondary"}>
+                  {i.severity}
+                </Badge>
+                <span className="font-mono text-xs text-muted-foreground">{i.where}</span>
+                <span className="flex-1">{i.message}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+
 
 
       {sections.length === 0 && (
