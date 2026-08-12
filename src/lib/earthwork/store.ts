@@ -38,7 +38,11 @@ function load() {
   loaded = true;
   try {
     const raw = window.localStorage.getItem(KEY);
-    projects = raw ? (JSON.parse(raw) as Project[]) : seed();
+    const parsed = raw ? (JSON.parse(raw) as Project[]) : seed();
+    projects = (Array.isArray(parsed) ? parsed : seed()).map((p) => ({
+      ...p,
+      config: normalizeConfig((p.config ?? {}) as never),
+    }));
   } catch {
     projects = seed();
   }
