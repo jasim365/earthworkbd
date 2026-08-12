@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { defaultConfig, type Project, type SectionData } from "./types";
+import { defaultConfig, normalizeConfig, type Project, type SectionData } from "./types";
 
 const KEY = "ewp.projects.v1";
 
@@ -38,7 +38,11 @@ function load() {
   loaded = true;
   try {
     const raw = window.localStorage.getItem(KEY);
-    projects = raw ? (JSON.parse(raw) as Project[]) : seed();
+    const parsed = raw ? (JSON.parse(raw) as Project[]) : seed();
+    projects = (Array.isArray(parsed) ? parsed : seed()).map((p) => ({
+      ...p,
+      config: normalizeConfig((p.config ?? {}) as never),
+    }));
   } catch {
     projects = seed();
   }
