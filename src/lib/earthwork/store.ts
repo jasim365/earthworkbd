@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { defaultConfig, type Project, type SectionData } from "./types";
+import { defaultConfig, normalizeConfig, type Project, type SectionData } from "./types";
 
 const KEY = "ewp.projects.v1";
 
