@@ -16,7 +16,7 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { NoProject } from "@/components/no-project";
 import { useActiveProject } from "@/lib/earthwork/store";
-import { computeVolumes, projectStats, fmt } from "@/lib/earthwork/calc";
+import { computeVolumes, projectStats, abstractRows, fmt } from "@/lib/earthwork/calc";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({
@@ -43,6 +43,7 @@ function ReportsPage() {
 
   const cfg = project.config;
   const { segments, total } = computeVolumes(project.pre, cfg);
+  const abstractData = abstractRows(project.pre, cfg);
   const stats = projectStats(project);
 
   const exportCsv = () => {
@@ -105,10 +106,74 @@ function ReportsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Abstract Estimate</CardTitle>
+          <CardTitle className="text-base">
+            Abstract Estimate for Earth Calculation —{" "}
+            {cfg.workType === "CANAL_EXCAVATION" ? "Excavation of Canal" : "Re-sectioning of Embankment"}
+          </CardTitle>
+          <CardDescription className="tabular-nums">
+            From {cfg.chainageUnit} {cfg.startChainage} to {cfg.chainageUnit} {cfg.endChainage} — grand
+            total {fmt(Math.abs(abstractData.total))} Cum
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-14">C/S No.</TableHead>
+                <TableHead>Ch. in {cfg.chainageUnit}</TableHead>
+                <TableHead className="text-right">Area in Sqm</TableHead>
+                <TableHead className="text-right">Mean Area</TableHead>
+                <TableHead className="text-right">Dist. in m</TableHead>
+                <TableHead className="text-right">Volume of E/W in Cum</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {abstractData.rows.map((r, i) =>
+                r.spacer ? (
+                  <TableRow key={i} className="h-6 bg-muted/40">
+                    <TableCell colSpan={6} />
+                  </TableRow>
+                ) : (
+                  <TableRow key={i}>
+                    <TableCell className="tabular-nums">{r.no}</TableCell>
+                    <TableCell className="tabular-nums">{r.chainage?.toFixed(3)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmt(r.area ?? NaN, 3)}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {r.meanArea === undefined ? "" : fmt(r.meanArea, 3)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {r.distance === undefined ? "" : fmt(r.distance)}
+                    </TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {r.volume === undefined ? "" : `${fmt(r.volume)} Cum`}
+                    </TableCell>
+                  </TableRow>
+                ),
+              )}
+              {abstractData.rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                    No pre-work sections yet.
+                  </TableCell>
+                </TableRow>
+              )}
+              <TableRow className="font-semibold">
+                <TableCell colSpan={5}>Grand total earthwork</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {fmt(Math.abs(abstractData.total))} Cum
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Cost Abstract</CardTitle>
           <CardDescription>Summary of earthwork quantities and cost.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

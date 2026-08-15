@@ -36,8 +36,39 @@ function chainageT(chainage: number, cfg: DesignConfig): number {
   return Math.max(0, Math.min(1, t));
 }
 
+/**
+ * Piecewise-linear interpolation through the start value, any dynamic middle
+ * control points that define this quantity, and the end value.
+ */
+function seriesValue(
+  chainage: number,
+  cfg: DesignConfig,
+  key: "level" | "width",
+  startVal: number,
+  endVal: number,
+): number | null {
+  const mids = (cfg.controlPoints ?? [])
+    .filter((c) => typeof c[key] === "number" && Number.isFinite(c[key] as number))
+    .map((c) => ({ t: chainageT(c.chainage, cfg), v: c[key] as number }));
+  if (mids.length === 0) return null;
+  const pts = [{ t: 0, v: startVal }, ...mids, { t: 1, v: endVal }].sort((a, b) => a.t - b.t);
+  const t = chainageT(chainage, cfg);
+  if (t <= pts[0]!.t) return pts[0]!.v;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1]!;
+    const b = pts[i]!;
+    if (t <= b.t) {
+      const k = (t - a.t) / (b.t - a.t || 1);
+      return a.v + k * (b.v - a.v);
+    }
+  }
+  return pts[pts.length - 1]!.v;
+}
+
 /** Design bed / crest level at a chainage. */
 export function designLevelAt(chainage: number, cfg: DesignConfig): number {
+  const mid = seriesValue(chainage, cfg, "level", cfg.levelStart, cfg.levelEnd);
+  if (mid !== null && cfg.levelMode !== "CONSTANT_AT_FIXED_LENGTH") return mid;
   if (cfg.levelMode === "CONSTANT") return cfg.levelStart;
   if (cfg.levelMode === "CONSTANT_AT_FIXED_LENGTH") {
     const step = Math.max(cfg.fixedLength, 1);
@@ -54,6 +85,8 @@ export function designLevelAt(chainage: number, cfg: DesignConfig): number {
 
 /** Design bed / crest width at a chainage. */
 export function designWidthAt(chainage: number, cfg: DesignConfig): number {
+  const mid = seriesValue(chainage, cfg, "width", cfg.widthStart, cfg.widthEnd);
+  if (mid !== null && cfg.widthMode !== "CONSTANT_AT_FIXED_LENGTH") return mid;
   if (cfg.widthMode === "CONSTANT") return cfg.widthStart;
   if (cfg.widthMode === "CONSTANT_AT_FIXED_LENGTH") {
     const step = Math.max(cfg.fixedLength, 1);
@@ -275,3 +308,53 @@ export function projectStats(project: Project): ProjectStats {
 
 export const fmt = (n: number, d = 2) =>
   Number.isFinite(n) ? n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }) : "—";
+
+export interface AbstractRow {
+  /** blank spacer row printed where the alignment is discontinuous */
+  spacer?: boolean;
+  no?: number;
+  chainage?: number;
+  area?: number;
+  meanArea?: number;
+  /** signed distance in m (negative when chainage decreases) */
+  distance?: number;
+  volume?: number;
+}
+
+/** BWDB "Abstract" sheet rows: per-section area, mean area, distance and volume. */
+export function abstractRows(
+  sections: SectionData[],
+  cfg: DesignConfig,
+  maxGapMeters = 200,
+): { rows: AbstractRow[]; total: number } {
+  const sorted = [...sections].sort(
+    (a, b) => toMeters(a.chainage, cfg.chainageUnit) - toMeters(b.chainage, cfg.chainageUnit),
+  );
+  const order = cfg.startChainage >= cfg.endChainage ? [...sorted].reverse() : sorted;
+
+  const rows: AbstractRow[] = [];
+  let total = 0;
+  order.forEach((s, i) => {
+    const area = sectionAreas(s.points, designProfile(s, cfg)).net;
+    const prev = order[i - 1];
+    if (!prev) {
+      rows.push({ no: i + 1, chainage: s.chainage, area });
+      return;
+    }
+    const distance =
+      toMeters(s.chainage, cfg.chainageUnit) - toMeters(prev.chainage, cfg.chainageUnit);
+    const gap =
+      prev.points.length < 2 || s.points.length < 2 || Math.abs(distance) > maxGapMeters;
+    if (gap) {
+      rows.push({ spacer: true });
+      rows.push({ no: i + 1, chainage: s.chainage, area });
+      return;
+    }
+    const prevArea = sectionAreas(prev.points, designProfile(prev, cfg)).net;
+    const meanArea = (prevArea + area) / 2;
+    const volume = meanArea * distance;
+    total += volume;
+    rows.push({ no: i + 1, chainage: s.chainage, area, meanArea, distance, volume });
+  });
+  return { rows, total };
+}

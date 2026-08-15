@@ -27,6 +27,17 @@ export interface RgbColor {
   b: number;
 }
 
+/** Dynamic intermediate (middle) chainage control point. */
+export interface ControlPoint {
+  id: string;
+  /** chainage in the project's chainage unit */
+  chainage: number;
+  /** design bed/crest level at this chainage (optional) */
+  level?: number | undefined;
+  /** design bed/crest width at this chainage (optional) */
+  width?: number | undefined;
+}
+
 export interface DesignConfig {
   workType: WorkType;
   chainageUnit: ChainageUnit;
@@ -52,6 +63,9 @@ export interface DesignConfig {
   widthEnd: number;
   /** length (m) of each constant-width step when widthMode = CONSTANT_AT_FIXED_LENGTH */
   fixedLength: number;
+  /** dynamic intermediate chainage / level / width control points */
+  controlPoints: ControlPoint[];
+
 
   /** Post-work options */
   calculateProgress: boolean;
@@ -92,6 +106,7 @@ export const defaultConfig = (): DesignConfig => ({
   widthStart: 4.3,
   widthEnd: 4.3,
   fixedLength: 300,
+  controlPoints: [],
   calculateProgress: true,
   colorPre: { r: 255, g: 0, b: 0 },
   colorPostAdjusted: { r: 0, g: 255, b: 0 },
@@ -121,6 +136,7 @@ export function normalizeConfig(cfg: Partial<DesignConfig> & Record<string, unkn
     colorPostAdjusted: cfg.colorPostAdjusted ?? base.colorPostAdjusted,
     colorPostOriginal: cfg.colorPostOriginal ?? base.colorPostOriginal,
     colorDesign: cfg.colorDesign ?? base.colorDesign,
+    controlPoints: Array.isArray(cfg.controlPoints) ? cfg.controlPoints : base.controlPoints,
   } as DesignConfig;
 }
 
