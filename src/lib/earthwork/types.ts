@@ -27,6 +27,17 @@ export interface RgbColor {
   b: number;
 }
 
+/** Dynamic intermediate (middle) chainage control point. */
+export interface ControlPoint {
+  id: string;
+  /** chainage in the project's chainage unit */
+  chainage: number;
+  /** design bed/crest level at this chainage (optional) */
+  level?: number;
+  /** design bed/crest width at this chainage (optional) */
+  width?: number;
+}
+
 export interface DesignConfig {
   workType: WorkType;
   chainageUnit: ChainageUnit;
