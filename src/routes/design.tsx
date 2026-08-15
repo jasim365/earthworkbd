@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { Plus, Trash2 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import { useActiveProject, updateProject } from "@/lib/earthwork/store";
 import { rgbToHex } from "@/lib/earthwork/types";
 import type {
   CenterLineMode,
+  ControlPoint,
   ChainageUnit,
   DesignConfig,
   RgbColor,
@@ -55,6 +57,12 @@ function DesignPage() {
 
   const set = <K extends keyof DesignConfig>(key: K, value: DesignConfig[K]) =>
     updateProject(project.id, { config: { ...cfg, [key]: value } });
+
+  const patchPoint = (id: string, patch: Partial<ControlPoint>) =>
+    set(
+      "controlPoints",
+      cfg.controlPoints.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    );
 
   const unit = cfg.chainageUnit === "KM" ? "KM" : "M";
   const isCanal = cfg.workType === "CANAL_EXCAVATION";
@@ -357,6 +365,32 @@ function NumField({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
+        className="tabular-nums"
+      />
+    </div>
+  );
+}
+
+function OptField({
+  label,
+  value,
+  onChange,
+  step = "0.01",
+}: {
+  label: string;
+  value: number | undefined;
+  onChange: (v: number | undefined) => void;
+  step?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Input
+        type="number"
+        step={step}
+        placeholder="interpolated"
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
         className="tabular-nums"
       />
     </div>
