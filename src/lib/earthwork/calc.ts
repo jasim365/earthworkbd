@@ -36,8 +36,39 @@ function chainageT(chainage: number, cfg: DesignConfig): number {
   return Math.max(0, Math.min(1, t));
 }
 
+/**
+ * Piecewise-linear interpolation through the start value, any dynamic middle
+ * control points that define this quantity, and the end value.
+ */
+function seriesValue(
+  chainage: number,
+  cfg: DesignConfig,
+  key: "level" | "width",
+  startVal: number,
+  endVal: number,
+): number | null {
+  const mids = (cfg.controlPoints ?? [])
+    .filter((c) => typeof c[key] === "number" && Number.isFinite(c[key] as number))
+    .map((c) => ({ t: chainageT(c.chainage, cfg), v: c[key] as number }));
+  if (mids.length === 0) return null;
+  const pts = [{ t: 0, v: startVal }, ...mids, { t: 1, v: endVal }].sort((a, b) => a.t - b.t);
+  const t = chainageT(chainage, cfg);
+  if (t <= pts[0]!.t) return pts[0]!.v;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1]!;
+    const b = pts[i]!;
+    if (t <= b.t) {
+      const k = (t - a.t) / (b.t - a.t || 1);
+      return a.v + k * (b.v - a.v);
+    }
+  }
+  return pts[pts.length - 1]!.v;
+}
+
 /** Design bed / crest level at a chainage. */
 export function designLevelAt(chainage: number, cfg: DesignConfig): number {
+  const mid = seriesValue(chainage, cfg, "level", cfg.levelStart, cfg.levelEnd);
+  if (mid !== null && cfg.levelMode !== "CONSTANT_AT_FIXED_LENGTH") return mid;
   if (cfg.levelMode === "CONSTANT") return cfg.levelStart;
   if (cfg.levelMode === "CONSTANT_AT_FIXED_LENGTH") {
     const step = Math.max(cfg.fixedLength, 1);
