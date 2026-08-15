@@ -85,6 +85,8 @@ export function designLevelAt(chainage: number, cfg: DesignConfig): number {
 
 /** Design bed / crest width at a chainage. */
 export function designWidthAt(chainage: number, cfg: DesignConfig): number {
+  const mid = seriesValue(chainage, cfg, "width", cfg.widthStart, cfg.widthEnd);
+  if (mid !== null && cfg.widthMode !== "CONSTANT_AT_FIXED_LENGTH") return mid;
   if (cfg.widthMode === "CONSTANT") return cfg.widthStart;
   if (cfg.widthMode === "CONSTANT_AT_FIXED_LENGTH") {
     const step = Math.max(cfg.fixedLength, 1);
