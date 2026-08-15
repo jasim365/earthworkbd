@@ -308,3 +308,53 @@ export function projectStats(project: Project): ProjectStats {
 
 export const fmt = (n: number, d = 2) =>
   Number.isFinite(n) ? n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }) : "—";
+
+export interface AbstractRow {
+  /** blank spacer row printed where the alignment is discontinuous */
+  spacer?: boolean;
+  no?: number;
+  chainage?: number;
+  area?: number;
+  meanArea?: number;
+  /** signed distance in m (negative when chainage decreases) */
+  distance?: number;
+  volume?: number;
+}
+
+/** BWDB "Abstract" sheet rows: per-section area, mean area, distance and volume. */
+export function abstractRows(
+  sections: SectionData[],
+  cfg: DesignConfig,
+  maxGapMeters = 200,
+): { rows: AbstractRow[]; total: number } {
+  const sorted = [...sections].sort(
+    (a, b) => toMeters(a.chainage, cfg.chainageUnit) - toMeters(b.chainage, cfg.chainageUnit),
+  );
+  const order = cfg.startChainage >= cfg.endChainage ? [...sorted].reverse() : sorted;
+
+  const rows: AbstractRow[] = [];
+  let total = 0;
+  order.forEach((s, i) => {
+    const area = sectionAreas(s.points, designProfile(s, cfg)).net;
+    const prev = order[i - 1];
+    if (!prev) {
+      rows.push({ no: i + 1, chainage: s.chainage, area });
+      return;
+    }
+    const distance =
+      toMeters(s.chainage, cfg.chainageUnit) - toMeters(prev.chainage, cfg.chainageUnit);
+    const gap =
+      prev.points.length < 2 || s.points.length < 2 || Math.abs(distance) > maxGapMeters;
+    if (gap) {
+      rows.push({ spacer: true });
+      rows.push({ no: i + 1, chainage: s.chainage, area });
+      return;
+    }
+    const prevArea = sectionAreas(prev.points, designProfile(prev, cfg)).net;
+    const meanArea = (prevArea + area) / 2;
+    const volume = meanArea * distance;
+    total += volume;
+    rows.push({ no: i + 1, chainage: s.chainage, area, meanArea, distance, volume });
+  });
+  return { rows, total };
+}
