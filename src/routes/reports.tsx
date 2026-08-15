@@ -16,7 +16,7 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { NoProject } from "@/components/no-project";
 import { useActiveProject } from "@/lib/earthwork/store";
-import { computeVolumes, projectStats, fmt } from "@/lib/earthwork/calc";
+import { computeVolumes, projectStats, abstractRows, fmt } from "@/lib/earthwork/calc";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({
@@ -43,6 +43,7 @@ function ReportsPage() {
 
   const cfg = project.config;
   const { segments, total } = computeVolumes(project.pre, cfg);
+  const abstractData = abstractRows(project.pre, cfg);
   const stats = projectStats(project);
 
   const exportCsv = () => {
@@ -111,7 +112,7 @@ function ReportsPage() {
           </CardTitle>
           <CardDescription className="tabular-nums">
             From {cfg.chainageUnit} {cfg.startChainage} to {cfg.chainageUnit} {cfg.endChainage} — grand
-            total {fmt(Math.abs(abstract.total))} Cum
+            total {fmt(Math.abs(abstractData.total))} Cum
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
@@ -127,7 +128,7 @@ function ReportsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {abstract.rows.map((r, i) =>
+              {abstractData.rows.map((r, i) =>
                 r.spacer ? (
                   <TableRow key={i} className="h-6 bg-muted/40">
                     <TableCell colSpan={6} />
@@ -149,7 +150,7 @@ function ReportsPage() {
                   </TableRow>
                 ),
               )}
-              {abstract.rows.length === 0 && (
+              {abstractData.rows.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                     No pre-work sections yet.
@@ -159,7 +160,7 @@ function ReportsPage() {
               <TableRow className="font-semibold">
                 <TableCell colSpan={5}>Grand total earthwork</TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {fmt(Math.abs(abstract.total))} Cum
+                  {fmt(Math.abs(abstractData.total))} Cum
                 </TableCell>
               </TableRow>
             </TableBody>
