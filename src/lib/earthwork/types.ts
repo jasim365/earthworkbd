@@ -63,6 +63,9 @@ export interface DesignConfig {
   widthEnd: number;
   /** length (m) of each constant-width step when widthMode = CONSTANT_AT_FIXED_LENGTH */
   fixedLength: number;
+  /** dynamic intermediate chainage / level / width control points */
+  controlPoints: ControlPoint[];
+
 
   /** Post-work options */
   calculateProgress: boolean;
