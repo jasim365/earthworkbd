@@ -58,7 +58,10 @@ function DesignPage() {
   const set = <K extends keyof DesignConfig>(key: K, value: DesignConfig[K]) =>
     updateProject(project.id, { config: { ...cfg, [key]: value } });
 
-  const patchPoint = (id: string, patch: Partial<ControlPoint>) =>
+  const patchPoint = (
+    id: string,
+    patch: { chainage?: number; level?: number | undefined; width?: number | undefined },
+  ) =>
     set(
       "controlPoints",
       cfg.controlPoints.map((c) => (c.id === id ? { ...c, ...patch } : c)),
