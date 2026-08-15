@@ -218,6 +218,73 @@ function DesignPage() {
           </CardContent>
         </Card>
 
+        <Card className="xl:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Intermediate Chainage Points</CardTitle>
+            <CardDescription>
+              Add middle chainages between start and end with their own design level and/or{" "}
+              {isCanal ? "bed" : "crest"} width. Values interpolate piecewise between the points.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {cfg.controlPoints.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No intermediate points — levels and widths run straight from start to end.
+              </p>
+            )}
+            {cfg.controlPoints.map((cp) => (
+              <div key={cp.id} className="grid items-end gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]">
+                <NumField
+                  label={`Chainage (${unit})`}
+                  value={cp.chainage}
+                  step="0.001"
+                  onChange={(v) => patchPoint(cp.id, { chainage: v })}
+                />
+                <OptField
+                  label={`${levelLabel}`}
+                  value={cp.level}
+                  step="0.001"
+                  onChange={(v) => patchPoint(cp.id, { level: v })}
+                />
+                <OptField
+                  label={`${widthLabel}`}
+                  value={cp.width}
+                  onChange={(v) => patchPoint(cp.id, { width: v })}
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="Remove point"
+                  onClick={() =>
+                    set(
+                      "controlPoints",
+                      cfg.controlPoints.filter((c) => c.id !== cp.id),
+                    )
+                  }
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              onClick={() =>
+                set("controlPoints", [
+                  ...cfg.controlPoints,
+                  {
+                    id: Math.random().toString(36).slice(2, 10),
+                    chainage: (cfg.startChainage + cfg.endChainage) / 2,
+                    level: cfg.levelStart,
+                    width: cfg.widthStart,
+                  },
+                ])
+              }
+            >
+              <Plus className="size-4" /> Add middle chainage
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Postwork Calculations</CardTitle>
