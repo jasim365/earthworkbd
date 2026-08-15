@@ -106,6 +106,7 @@ export const defaultConfig = (): DesignConfig => ({
   widthStart: 4.3,
   widthEnd: 4.3,
   fixedLength: 300,
+  controlPoints: [],
   calculateProgress: true,
   colorPre: { r: 255, g: 0, b: 0 },
   colorPostAdjusted: { r: 0, g: 255, b: 0 },
@@ -135,6 +136,7 @@ export function normalizeConfig(cfg: Partial<DesignConfig> & Record<string, unkn
     colorPostAdjusted: cfg.colorPostAdjusted ?? base.colorPostAdjusted,
     colorPostOriginal: cfg.colorPostOriginal ?? base.colorPostOriginal,
     colorDesign: cfg.colorDesign ?? base.colorDesign,
+    controlPoints: Array.isArray(cfg.controlPoints) ? cfg.controlPoints : base.controlPoints,
   } as DesignConfig;
 }
 
