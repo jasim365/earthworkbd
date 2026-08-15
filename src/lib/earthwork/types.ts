@@ -33,9 +33,9 @@ export interface ControlPoint {
   /** chainage in the project's chainage unit */
   chainage: number;
   /** design bed/crest level at this chainage (optional) */
-  level?: number;
+  level?: number | undefined;
   /** design bed/crest width at this chainage (optional) */
-  width?: number;
+  width?: number | undefined;
 }
 
 export interface DesignConfig {
