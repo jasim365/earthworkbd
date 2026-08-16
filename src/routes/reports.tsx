@@ -1,7 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Printer, Download, FileSpreadsheet, PenTool } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Legend,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { exportWorkbook, exportDxf } from "@/lib/earthwork/export";
+
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
