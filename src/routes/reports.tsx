@@ -58,6 +58,19 @@ function ReportsPage() {
   const abstractData = abstractRows(project.pre, cfg);
   const stats = projectStats(project);
 
+  let running = 0;
+  const chartData = segments.map((s) => {
+    running += s.volume;
+    return {
+      ch: s.toChainage,
+      meanArea: Number(s.meanArea.toFixed(3)),
+      volume: Number(s.volume.toFixed(2)),
+      cumulative: Number(running.toFixed(2)),
+    };
+  });
+
+
+
   const exportCsv = () => {
     const rows = [
       ["From", "To", "Distance (m)", "Mean Area (m2)", "Volume (m3)", "Amount"],
