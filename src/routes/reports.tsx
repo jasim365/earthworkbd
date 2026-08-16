@@ -252,6 +252,59 @@ function ReportsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Detailed Calculation Chart</CardTitle>
+          <CardDescription>
+            Mean area, per-segment volume and cumulative earthwork along the alignment.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="ch"
+                  tick={{ fontSize: 11 }}
+                  label={{ value: `Chainage (${cfg.chainageUnit})`, position: "insideBottom", offset: -12, fontSize: 11 }}
+                />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v: number) => fmt(Number(v))} />
+                <Legend />
+                <Bar yAxisId="left" dataKey="volume" name="Volume (m³)" fill="hsl(var(--primary))" isAnimationActive={false} />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="meanArea"
+                  name="Mean area (m²)"
+                  stroke="hsl(var(--destructive))"
+                  dot={false}
+                  isAnimationActive={false}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="cumulative"
+                  name="Cumulative volume (m³)"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeDasharray="5 5"
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+          {chartData.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Add at least two chainages to plot the detailed calculation.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
