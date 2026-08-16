@@ -172,11 +172,12 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
 
   const loadDemo = () => {
     updateProject(project.id, {
-      pre: mergeSections(project.pre, toSections0("pre")),
-      post: mergeSections(project.post, toSections0("post")),
+      pre: mergeSections(project.pre, parseSurveyCsv(DEMO_PRE_CSV).sections),
+      post: mergeSections(project.post, parseSurveyCsv(DEMO_POST_CSV).sections),
     });
     toast.success("Demo pre & post survey data loaded");
   };
+
 
 
 
