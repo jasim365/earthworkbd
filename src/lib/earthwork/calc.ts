@@ -233,7 +233,7 @@ export interface ChainageAreaRow {
 export function computeVolumes(
   sections: SectionData[],
   cfg: DesignConfig,
-  maxGapMeters = 200,
+  maxGapMeters = 1000,
 ): { areas: ChainageAreaRow[]; segments: SegmentRow[]; total: number; cut: number; fill: number } {
   const sorted = [...sections].sort((a, b) => a.chainage - b.chainage);
   const areas: ChainageAreaRow[] = sorted.map((s) => {
@@ -325,7 +325,7 @@ export interface AbstractRow {
 export function abstractRows(
   sections: SectionData[],
   cfg: DesignConfig,
-  maxGapMeters = 200,
+  maxGapMeters = 1000,
 ): { rows: AbstractRow[]; total: number } {
   const sorted = [...sections].sort(
     (a, b) => toMeters(a.chainage, cfg.chainageUnit) - toMeters(b.chainage, cfg.chainageUnit),
