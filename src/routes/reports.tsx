@@ -1,7 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Printer, Download, FileSpreadsheet, PenTool } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Legend,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { exportWorkbook, exportDxf } from "@/lib/earthwork/export";
+
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +57,19 @@ function ReportsPage() {
   const { segments, total } = computeVolumes(project.pre, cfg);
   const abstractData = abstractRows(project.pre, cfg);
   const stats = projectStats(project);
+
+  let running = 0;
+  const chartData = segments.map((s) => {
+    running += s.volume;
+    return {
+      ch: s.toChainage,
+      meanArea: Number(s.meanArea.toFixed(3)),
+      volume: Number(s.volume.toFixed(2)),
+      cumulative: Number(running.toFixed(2)),
+    };
+  });
+
+
 
   const exportCsv = () => {
     const rows = [
@@ -158,11 +183,14 @@ function ReportsPage() {
                 </TableRow>
               )}
               <TableRow className="font-semibold">
-                <TableCell colSpan={5}>Grand total earthwork</TableCell>
+                <TableCell colSpan={5} className="text-right">
+                  Total =
+                </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {fmt(Math.abs(abstractData.total))} Cum
                 </TableCell>
               </TableRow>
+
             </TableBody>
           </Table>
         </CardContent>
@@ -249,6 +277,59 @@ function ReportsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Detailed Calculation Chart</CardTitle>
+          <CardDescription>
+            Mean area, per-segment volume and cumulative earthwork along the alignment.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="ch"
+                  tick={{ fontSize: 11 }}
+                  label={{ value: `Chainage (${cfg.chainageUnit})`, position: "insideBottom", offset: -12, fontSize: 11 }}
+                />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v: number) => fmt(Number(v))} />
+                <Legend />
+                <Bar yAxisId="left" dataKey="volume" name="Volume (m³)" fill="hsl(var(--primary))" isAnimationActive={false} />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="meanArea"
+                  name="Mean area (m²)"
+                  stroke="hsl(var(--destructive))"
+                  dot={false}
+                  isAnimationActive={false}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="cumulative"
+                  name="Cumulative volume (m³)"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeDasharray="5 5"
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+          {chartData.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Add at least two chainages to plot the detailed calculation.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
     </div>
   );
 }

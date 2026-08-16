@@ -23,6 +23,14 @@ import type { Project, SectionData } from "@/lib/earthwork/types";
 import { designProfile, sectionArea, fmt } from "@/lib/earthwork/calc";
 import { parseSurveyCsv, mergeSections, SURVEY_CSV_TEMPLATE } from "@/lib/earthwork/csv";
 import { parseChartDatasetsWorkbook, type ImportIssue } from "@/lib/earthwork/xlsx-import";
+import {
+  DEMO_PRE_CSV,
+  DEMO_POST_CSV,
+  downloadDemoWorkbook,
+  downloadText,
+  parseSurveySheetsWorkbook,
+} from "@/lib/earthwork/demo-data";
+
 
 
 
@@ -107,6 +115,28 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
 
   const onImportWorkbook = async (file: File) => {
     setIssues([]);
+
+    // 1) Simple "Pre" / "Post" survey sheets (the demo template).
+    try {
+      const simple = await parseSurveySheetsWorkbook(file);
+      if (simple && (simple.pre.length || simple.post.length)) {
+        const patch: Partial<Project> = {};
+        if (simple.pre.length) patch.pre = mergeSections(project.pre, simple.pre);
+        if (simple.post.length) patch.post = mergeSections(project.post, simple.post);
+        updateProject(project.id, patch);
+        setIssues(
+          simple.errors.map((message) => ({ severity: "warning" as const, where: file.name, message })),
+        );
+        toast.success("Survey template imported — charts and volumes recalculated", {
+          description: `${simple.pre.length} pre-work and ${simple.post.length} post-work chainages`,
+        });
+        return;
+      }
+    } catch {
+      /* fall through to the Chart_Datasets parser */
+    }
+
+    // 2) Chart_Datasets round-trip workbook.
     let res: Awaited<ReturnType<typeof parseChartDatasetsWorkbook>>;
     try {
       res = await parseChartDatasetsWorkbook(file);
@@ -148,6 +178,33 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
     URL.revokeObjectURL(url);
   };
 
+  const loadDemo = () => {
+    updateProject(project.id, {
+      pre: mergeSections(project.pre, parseSurveyCsv(DEMO_PRE_CSV).sections),
+      post: mergeSections(project.post, parseSurveyCsv(DEMO_POST_CSV).sections),
+      config: {
+        ...project.config,
+        workType: "CANAL_EXCAVATION",
+        chainageUnit: "KM",
+        centerLineMode: "MIDDLE",
+        startChainage: 0,
+        endChainage: 2.25,
+        levelMode: "INTERPOLATED",
+        levelStart: 11.0,
+        levelEnd: 10.6,
+        widthMode: "INTERPOLATED",
+        widthStart: 4.5,
+        widthEnd: 6.0,
+      },
+    });
+    toast.success("Demo pre & post survey data loaded", {
+      description: "Design section set to match the demo alignment (CH 0.000 – 2.250 KM)",
+    });
+  };
+
+
+
+
 
   return (
     <div className="space-y-4">
@@ -187,15 +244,39 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
           }}
         />
         <Button variant="outline" onClick={() => xlsxRef.current?.click()}>
-          <FileSpreadsheet className="size-4" /> Import Chart_Datasets.xlsx
+          <FileSpreadsheet className="size-4" /> Import Excel
         </Button>
         <Button variant="ghost" onClick={downloadTemplate}>
           <Download className="size-4" /> Template
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() =>
+            downloadDemoWorkbook()
+              .then(() => toast.success("Demo Excel template downloaded"))
+              .catch((e) => toast.error("Download failed", { description: String(e) }))
+          }
+        >
+          <FileSpreadsheet className="size-4" /> Demo Excel
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            downloadText("demo-pre-survey.csv", DEMO_PRE_CSV);
+            downloadText("demo-post-survey.csv", DEMO_POST_CSV);
+            toast.success("Demo pre & post CSV files downloaded");
+          }}
+        >
+          <Download className="size-4" /> Demo CSV
+        </Button>
+        <Button variant="secondary" onClick={loadDemo}>
+          Load demo data
         </Button>
 
         <span className="text-xs text-muted-foreground">
           Columns: chainage ({unit}), distance (m), RL (m)
         </span>
+
       </div>
 
       {issues.length > 0 && (
