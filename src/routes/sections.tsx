@@ -227,15 +227,39 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
           }}
         />
         <Button variant="outline" onClick={() => xlsxRef.current?.click()}>
-          <FileSpreadsheet className="size-4" /> Import Chart_Datasets.xlsx
+          <FileSpreadsheet className="size-4" /> Import Excel
         </Button>
         <Button variant="ghost" onClick={downloadTemplate}>
           <Download className="size-4" /> Template
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() =>
+            downloadDemoWorkbook()
+              .then(() => toast.success("Demo Excel template downloaded"))
+              .catch((e) => toast.error("Download failed", { description: String(e) }))
+          }
+        >
+          <FileSpreadsheet className="size-4" /> Demo Excel
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            downloadText("demo-pre-survey.csv", DEMO_PRE_CSV);
+            downloadText("demo-post-survey.csv", DEMO_POST_CSV);
+            toast.success("Demo pre & post CSV files downloaded");
+          }}
+        >
+          <Download className="size-4" /> Demo CSV
+        </Button>
+        <Button variant="secondary" onClick={loadDemo}>
+          Load demo data
         </Button>
 
         <span className="text-xs text-muted-foreground">
           Columns: chainage ({unit}), distance (m), RL (m)
         </span>
+
       </div>
 
       {issues.length > 0 && (
