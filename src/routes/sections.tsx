@@ -107,6 +107,28 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
 
   const onImportWorkbook = async (file: File) => {
     setIssues([]);
+
+    // 1) Simple "Pre" / "Post" survey sheets (the demo template).
+    try {
+      const simple = await parseSurveySheetsWorkbook(file);
+      if (simple && (simple.pre.length || simple.post.length)) {
+        const patch: Partial<Project> = {};
+        if (simple.pre.length) patch.pre = mergeSections(project.pre, simple.pre);
+        if (simple.post.length) patch.post = mergeSections(project.post, simple.post);
+        updateProject(project.id, patch);
+        setIssues(
+          simple.errors.map((message) => ({ severity: "warning" as const, where: file.name, message })),
+        );
+        toast.success("Survey template imported — charts and volumes recalculated", {
+          description: `${simple.pre.length} pre-work and ${simple.post.length} post-work chainages`,
+        });
+        return;
+      }
+    } catch {
+      /* fall through to the Chart_Datasets parser */
+    }
+
+    // 2) Chart_Datasets round-trip workbook.
     let res: Awaited<ReturnType<typeof parseChartDatasetsWorkbook>>;
     try {
       res = await parseChartDatasetsWorkbook(file);
@@ -147,6 +169,15 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const loadDemo = () => {
+    updateProject(project.id, {
+      pre: mergeSections(project.pre, toSections0("pre")),
+      post: mergeSections(project.post, toSections0("post")),
+    });
+    toast.success("Demo pre & post survey data loaded");
+  };
+
 
 
   return (
