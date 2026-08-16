@@ -158,11 +158,14 @@ function ReportsPage() {
                 </TableRow>
               )}
               <TableRow className="font-semibold">
-                <TableCell colSpan={5}>Grand total earthwork</TableCell>
+                <TableCell colSpan={5} className="text-right">
+                  Total =
+                </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {fmt(Math.abs(abstractData.total))} Cum
                 </TableCell>
               </TableRow>
+
             </TableBody>
           </Table>
         </CardContent>
