@@ -182,9 +182,26 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
     updateProject(project.id, {
       pre: mergeSections(project.pre, parseSurveyCsv(DEMO_PRE_CSV).sections),
       post: mergeSections(project.post, parseSurveyCsv(DEMO_POST_CSV).sections),
+      config: {
+        ...project.config,
+        workType: "CANAL_EXCAVATION",
+        chainageUnit: "KM",
+        centerLineMode: "MIDDLE",
+        startChainage: 0,
+        endChainage: 2.25,
+        levelMode: "INTERPOLATED",
+        levelStart: 11.0,
+        levelEnd: 10.6,
+        widthMode: "INTERPOLATED",
+        widthStart: 4.5,
+        widthEnd: 6.0,
+      },
     });
-    toast.success("Demo pre & post survey data loaded");
+    toast.success("Demo pre & post survey data loaded", {
+      description: "Design section set to match the demo alignment (CH 0.000 – 2.250 KM)",
+    });
   };
+
 
 
 
