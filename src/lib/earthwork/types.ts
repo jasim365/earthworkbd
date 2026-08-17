@@ -70,6 +70,9 @@ export interface DesignConfig {
   /** Post-work options */
   calculateProgress: boolean;
 
+  /** Khal re-excavation: quantify cutting only, ignoring any filling soil */
+  cutOnly: boolean;
+
   /** Colour control (RGB) */
   colorPre: RgbColor;
   colorPostAdjusted: RgbColor;
