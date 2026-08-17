@@ -70,6 +70,9 @@ export interface DesignConfig {
   /** Post-work options */
   calculateProgress: boolean;
 
+  /** Khal re-excavation: quantify cutting only, ignoring any filling soil */
+  cutOnly: boolean;
+
   /** Colour control (RGB) */
   colorPre: RgbColor;
   colorPostAdjusted: RgbColor;
@@ -93,7 +96,7 @@ export interface Project {
 export const defaultConfig = (): DesignConfig => ({
   workType: "EMBANKMENT_RESECTIONING",
   chainageUnit: "KM",
-  centerLineMode: "MANUAL",
+  centerLineMode: "LOWEST_EARTH",
   manualCenterLine: 17,
   csSlope: 2.5,
   rsSlope: 2.5,
@@ -108,6 +111,7 @@ export const defaultConfig = (): DesignConfig => ({
   fixedLength: 300,
   controlPoints: [],
   calculateProgress: true,
+  cutOnly: true,
   colorPre: { r: 255, g: 0, b: 0 },
   colorPostAdjusted: { r: 0, g: 255, b: 0 },
   colorPostOriginal: { r: 0, g: 0, b: 255 },
@@ -137,6 +141,7 @@ export function normalizeConfig(cfg: Partial<DesignConfig> & Record<string, unkn
     colorPostOriginal: cfg.colorPostOriginal ?? base.colorPostOriginal,
     colorDesign: cfg.colorDesign ?? base.colorDesign,
     controlPoints: Array.isArray(cfg.controlPoints) ? cfg.controlPoints : base.controlPoints,
+    cutOnly: typeof cfg.cutOnly === "boolean" ? cfg.cutOnly : true,
   } as DesignConfig;
 }
 

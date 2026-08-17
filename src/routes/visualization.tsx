@@ -24,6 +24,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/page-header";
 import { NoProject } from "@/components/no-project";
+import { CrossSectionCanvas } from "@/components/cross-section-canvas";
 import { useActiveProject } from "@/lib/earthwork/store";
 import { designProfile, sectionAreas, interpAt, fmt } from "@/lib/earthwork/calc";
 import { rgbToHex } from "@/lib/earthwork/types";
@@ -112,8 +113,8 @@ function VisualizationPage() {
         </div>
         <div className="flex gap-2">
           <Badge variant="secondary">Cut {fmt(areas.cut)} m²</Badge>
-          <Badge variant="secondary">Fill {fmt(areas.fill)} m²</Badge>
-          <Badge>Net {fmt(areas.net)} m²</Badge>
+          {!cfg.cutOnly && <Badge variant="secondary">Fill {fmt(areas.fill)} m²</Badge>}
+          <Badge>{cfg.cutOnly ? `Quantity ${fmt(areas.cut)} m²` : `Net ${fmt(areas.net)} m²`}</Badge>
         </div>
       </div>
 
@@ -208,6 +209,23 @@ function VisualizationPage() {
               )}
             </ComposedChart>
           </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Interactive Canvas Cross-Section</CardTitle>
+          <CardDescription>
+            1 m RL grid and 5 m offset grid — red dashed = pre-work RL, green solid = post-work RL,
+            grey dashed = design template. Hover to read levels.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CrossSectionCanvas
+            pre={pre?.points ?? []}
+            post={post?.points ?? []}
+            design={design}
+          />
         </CardContent>
       </Card>
     </div>

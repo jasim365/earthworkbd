@@ -310,40 +310,54 @@ function writeSurveyGrid(ws: any, sections: SectionData[], unit: "KM" | "M") {
   });
 }
 
-/** Export cross-sections as a DXF drawing (polylines per profile). */
+/** Export cross-sections as an AutoCAD R12 ASCII DXF drawing. */
 export function exportDxf(project: Project) {
   const cfg = project.config;
-  const lines: string[] = ["0", "SECTION", "2", "ENTITIES"];
+  const layers: Array<[string, number]> = [
+    ["PRE_WORK_PROFILE", 1],
+    ["POST_WORK_PROFILE", 3],
+    ["DESIGN_PROFILE", 8],
+    ["LABELS", 7],
+  ];
+  const out: string[] = [
+    "0", "SECTION", "2", "HEADER",
+    "9", "$ACADVER", "1", "AC1009",
+    "9", "$INSBASE", "10", "0.0", "20", "0.0", "30", "0.0",
+    "0", "ENDSEC",
+    "0", "SECTION", "2", "TABLES",
+    "0", "TABLE", "2", "LAYER", "70", String(layers.length),
+  ];
+  layers.forEach(([name, color]) => {
+    out.push("0", "LAYER", "2", name, "70", "0", "62", String(color), "6", "CONTINUOUS");
+  });
+  out.push("0", "ENDTAB", "0", "ENDSEC", "0", "SECTION", "2", "ENTITIES");
+
   const sorted = [...project.pre].sort((a, b) => a.chainage - b.chainage);
   const sortedPost = [...project.post].sort((a, b) => a.chainage - b.chainage);
 
   sorted.forEach((s, i) => {
     const yOff = i * 60;
-    const xOff = 0;
-    poly(lines, "PREWORK", s.points, xOff, yOff, 1);
-    poly(lines, "DESIGN", designProfile(s, cfg), xOff, yOff, 8);
-    const post = sortedPost[i];
-    if (post) poly(lines, "POSTWORK", post.points, xOff, yOff, 3);
-    lines.push(
-      "0",
-      "TEXT",
-      "8",
-      "LABELS",
-      "10",
-      String(xOff),
-      "20",
-      String(yOff + 40),
-      "40",
-      "1.25",
-      "1",
-      `CH ${s.chainage} ${cfg.chainageUnit}`,
+    poly(out, "PRE_WORK_PROFILE", s.points, 0, yOff, 1);
+    poly(out, "DESIGN_PROFILE", designProfile(s, cfg), 0, yOff, 8);
+    const post = sortedPost.find((p) => p.chainage === s.chainage) ?? sortedPost[i];
+    if (post) poly(out, "POST_WORK_PROFILE", post.points, 0, yOff, 3);
+    out.push(
+      "0", "TEXT", "8", "LABELS", "62", "7",
+      "10", "0.0", "20", num(yOff + 40), "30", "0.0",
+      "40", "1.25", "1", `CH ${s.chainage} ${cfg.chainageUnit}`,
     );
   });
 
-  lines.push("0", "ENDSEC", "0", "EOF");
-  download(new Blob([lines.join("\n")], { type: "application/dxf" }), `${slug(project.name)}-sections.dxf`);
+  out.push("0", "ENDSEC", "0", "EOF", "");
+  download(
+    new Blob([out.join("\r\n")], { type: "application/dxf" }),
+    `${slug(project.name)}-sections.dxf`,
+  );
 }
 
+const num = (v: number) => (Number.isFinite(v) ? v.toFixed(4) : "0.0000");
+
+/** R12 heavy POLYLINE / VERTEX / SEQEND sequence (LWPOLYLINE is R13+). */
 function poly(
   out: string[],
   layer: string,
@@ -353,10 +367,18 @@ function poly(
   color: number,
 ) {
   if (pts.length < 2) return;
-  out.push("0", "LWPOLYLINE", "8", layer, "62", String(color), "90", String(pts.length), "70", "0");
+  out.push(
+    "0", "POLYLINE", "8", layer, "62", String(color),
+    "66", "1", "70", "0",
+    "10", "0.0", "20", "0.0", "30", "0.0",
+  );
   pts.forEach((p) => {
-    out.push("10", String(p.distance + xOff), "20", String(p.rl + yOff));
+    out.push(
+      "0", "VERTEX", "8", layer,
+      "10", num(p.distance + xOff), "20", num(p.rl + yOff), "30", "0.0",
+    );
   });
+  out.push("0", "SEQEND", "8", layer);
 }
 
 function slug(name: string) {

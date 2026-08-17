@@ -17,7 +17,9 @@ export function centerLineOf(
   manual: number,
   override?: number,
 ): number {
-  if (typeof override === "number" && Number.isFinite(override)) return override;
+  // Only a MANUAL centre line honours a stored per-section override; every other
+  // mode re-derives the alignment from the current pre-work RLs on each render.
+  if (mode === "MANUAL" && typeof override === "number" && Number.isFinite(override)) return override;
   if (points.length === 0) return manual;
   const xs = points.map((p) => p.distance);
   if (mode === "MANUAL") return manual;
@@ -200,6 +202,11 @@ export function sectionAreas(ground: SurveyPoint[], design: SurveyPoint[]): Area
 }
 
 /** Backwards-compatible signed area (positive = cutting). */
+/** Quantity area for a section: cutting only for khal re-excavation. */
+export function quantityArea(a: AreaResult, cfg: { cutOnly?: boolean }): number {
+  return cfg.cutOnly === false ? a.net : a.cut;
+}
+
 export function sectionArea(ground: SurveyPoint[], design: SurveyPoint[]): number {
   return sectionAreas(ground, design).net;
 }
@@ -238,7 +245,7 @@ export function computeVolumes(
   const sorted = [...sections].sort((a, b) => a.chainage - b.chainage);
   const areas: ChainageAreaRow[] = sorted.map((s) => {
     const a = sectionAreas(s.points, designProfile(s, cfg));
-    return { chainage: s.chainage, area: a.net, cut: a.cut, fill: a.fill };
+    return { chainage: s.chainage, area: quantityArea(a, cfg), cut: a.cut, fill: a.fill };
   });
 
   const segments: SegmentRow[] = [];
@@ -335,7 +342,7 @@ export function abstractRows(
   const rows: AbstractRow[] = [];
   let total = 0;
   order.forEach((s, i) => {
-    const area = sectionAreas(s.points, designProfile(s, cfg)).net;
+    const area = quantityArea(sectionAreas(s.points, designProfile(s, cfg)), cfg);
     const prev = order[i - 1];
     if (!prev) {
       rows.push({ no: i + 1, chainage: s.chainage, area });
@@ -350,7 +357,7 @@ export function abstractRows(
       rows.push({ no: i + 1, chainage: s.chainage, area });
       return;
     }
-    const prevArea = sectionAreas(prev.points, designProfile(prev, cfg)).net;
+    const prevArea = quantityArea(sectionAreas(prev.points, designProfile(prev, cfg)), cfg);
     const meanArea = (prevArea + area) / 2;
     const volume = meanArea * distance;
     total += volume;
