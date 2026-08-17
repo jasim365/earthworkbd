@@ -122,7 +122,7 @@ function ReportsPage() {
               <PenTool className="size-4" /> DXF
             </Button>
             <Button onClick={() => window.print()}>
-              <Printer className="size-4" /> Print
+              <Printer className="size-4" /> Print / PDF
             </Button>
           </div>
 
