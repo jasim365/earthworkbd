@@ -314,6 +314,15 @@ function DesignPage() {
                 onCheckedChange={(v) => set("calculateProgress", v)}
               />
             </div>
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div>
+                <p className="text-sm font-medium">Cutting only (khal re-excavation)</p>
+                <p className="text-xs text-muted-foreground">
+                  Quantify excavation only; filling soil is ignored in areas and volumes.
+                </p>
+              </div>
+              <Switch checked={cfg.cutOnly} onCheckedChange={(v) => set("cutOnly", v)} />
+            </div>
           </CardContent>
         </Card>
 
