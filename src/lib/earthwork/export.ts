@@ -7,6 +7,7 @@ import {
   designWidthAt,
   interpAt,
   sectionAreas,
+  abstractRows,
 } from "./calc";
 
 const argb = (hex: string) => "FF" + hex.replace("#", "").toUpperCase();
@@ -421,3 +422,232 @@ function download(blob: Blob, filename: string) {
 }
 
 export { interpAt, designLevelAt, designWidthAt };
+
+// ---------------------------------------------------------------- chart images
+
+const CANVAS_W = 1400;
+const CANVAS_H = 560;
+
+function newCanvas(): { cv: HTMLCanvasElement; g: CanvasRenderingContext2D } | null {
+  if (typeof document === "undefined") return null;
+  const cv = document.createElement("canvas");
+  cv.width = CANVAS_W;
+  cv.height = CANVAS_H;
+  const g = cv.getContext("2d");
+  if (!g) return null;
+  g.fillStyle = "#ffffff";
+  g.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  g.font = "18px Arial";
+  g.textBaseline = "middle";
+  return { cv, g };
+}
+
+const b64 = (cv: HTMLCanvasElement) => cv.toDataURL("image/png").split(",")[1] ?? "";
+
+function axes(
+  g: CanvasRenderingContext2D,
+  title: string,
+  xLabel: string,
+  yLabel: string,
+): { L: number; R: number; T: number; B: number } {
+  const box = { L: 110, R: CANVAS_W - 40, T: 70, B: CANVAS_H - 70 };
+  g.fillStyle = "#111827";
+  g.font = "bold 22px Arial";
+  g.fillText(title, box.L, 34);
+  g.font = "16px Arial";
+  g.fillText(xLabel, (box.L + box.R) / 2 - 60, CANVAS_H - 24);
+  g.save();
+  g.translate(28, (box.T + box.B) / 2);
+  g.rotate(-Math.PI / 2);
+  g.fillText(yLabel, -50, 0);
+  g.restore();
+  return box;
+}
+
+function grid(
+  g: CanvasRenderingContext2D,
+  box: { L: number; R: number; T: number; B: number },
+  xTicks: Array<{ p: number; t: string }>,
+  yTicks: Array<{ p: number; t: string }>,
+) {
+  g.strokeStyle = "#e5e7eb";
+  g.lineWidth = 1;
+  g.fillStyle = "#374151";
+  g.font = "14px Arial";
+  yTicks.forEach(({ p, t }) => {
+    g.beginPath();
+    g.moveTo(box.L, p);
+    g.lineTo(box.R, p);
+    g.stroke();
+    g.textAlign = "right";
+    g.fillText(t, box.L - 8, p);
+  });
+  xTicks.forEach(({ p, t }) => {
+    g.beginPath();
+    g.moveTo(p, box.T);
+    g.lineTo(p, box.B);
+    g.stroke();
+    g.textAlign = "center";
+    g.fillText(t, p, box.B + 20);
+  });
+  g.textAlign = "left";
+  g.strokeStyle = "#9ca3af";
+  g.strokeRect(box.L, box.T, box.R - box.L, box.B - box.T);
+}
+
+function legend(
+  g: CanvasRenderingContext2D,
+  box: { L: number; R: number; T: number; B: number },
+  items: Array<{ c: string; t: string; dash?: boolean }>,
+) {
+  let x = box.L + 8;
+  const y = box.T - 16;
+  g.font = "14px Arial";
+  items.forEach(({ c, t, dash }) => {
+    g.strokeStyle = c;
+    g.lineWidth = 3;
+    g.setLineDash(dash ? [7, 5] : []);
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x + 26, y);
+    g.stroke();
+    g.setLineDash([]);
+    g.fillStyle = "#111827";
+    g.fillText(t, x + 32, y);
+    x += 42 + g.measureText(t).width;
+  });
+}
+
+/** Cross-section profile chart (pre red dashed, design grey dashed, post green). */
+function renderSectionChart(
+  s: SectionData,
+  post: SectionData | undefined,
+  cfg: Project["config"],
+  km: boolean,
+): string {
+  if (s.points.length < 2) return "";
+  const made = newCanvas();
+  if (!made) return "";
+  const { cv, g } = made;
+  const design = designProfile(s, cfg);
+  const series = [
+    { pts: s.points, c: "#dc2626", dash: true, t: "Pre-work RL" },
+    { pts: design, c: "#6b7280", dash: true, t: "Design" },
+    ...(post && post.points.length > 1
+      ? [{ pts: post.points, c: "#16a34a", dash: false, t: "Post-work RL" }]
+      : []),
+  ];
+  const all = series.flatMap((x) => x.pts);
+  const xs = all.map((p) => p.distance);
+  const ys = all.map((p) => p.rl);
+  const x0 = Math.min(...xs);
+  const x1 = Math.max(...xs);
+  const y0 = Math.min(...ys) - 0.5;
+  const y1 = Math.max(...ys) + 0.5;
+
+  const box = axes(
+    g,
+    `Cross-section at CH ${s.chainage.toFixed(3)} ${km ? "KM" : "M"}`,
+    "Offset distance (m)",
+    "RL (m)",
+  );
+  const sx = (v: number) => box.L + ((v - x0) / (x1 - x0 || 1)) * (box.R - box.L);
+  const sy = (v: number) => box.B - ((v - y0) / (y1 - y0 || 1)) * (box.B - box.T);
+
+  const xTicks = [];
+  for (let i = 0; i <= 10; i++) {
+    const v = x0 + ((x1 - x0) * i) / 10;
+    xTicks.push({ p: sx(v), t: v.toFixed(1) });
+  }
+  const yTicks = [];
+  for (let i = 0; i <= 8; i++) {
+    const v = y0 + ((y1 - y0) * i) / 8;
+    yTicks.push({ p: sy(v), t: v.toFixed(2) });
+  }
+  grid(g, box, xTicks, yTicks);
+  legend(g, box, series.map((x) => ({ c: x.c, t: x.t, dash: x.dash })));
+
+  series.forEach(({ pts, c, dash }) => {
+    const p = [...pts].sort((a, b) => a.distance - b.distance);
+    g.strokeStyle = c;
+    g.lineWidth = 2.5;
+    g.setLineDash(dash ? [8, 5] : []);
+    g.beginPath();
+    p.forEach((q, i) => (i ? g.lineTo(sx(q.distance), sy(q.rl)) : g.moveTo(sx(q.distance), sy(q.rl))));
+    g.stroke();
+    g.setLineDash([]);
+  });
+  return b64(cv);
+}
+
+/** Volume / mean-area bar+line chart along the alignment. */
+function renderVolumeChart(project: Project): string {
+  const cfg = project.config;
+  const { rows } = abstractRows(project.pre, cfg);
+  const data = rows.filter((r) => !r.spacer && r.chainage !== undefined);
+  if (data.length < 2) return "";
+  const made = newCanvas();
+  if (!made) return "";
+  const { cv, g } = made;
+  const vols = data.map((r) => Math.abs(r.volume ?? 0));
+  const areas = data.map((r) => r.area ?? 0);
+  const vMax = Math.max(...vols, 1);
+  const aMax = Math.max(...areas, 1);
+  const embankment = cfg.workType === "EMBANKMENT_RESECTIONING";
+
+  const box = axes(
+    g,
+    `${embankment ? "Filling" : "Cutting"} volume & area by chainage`,
+    `Chainage (${cfg.chainageUnit})`,
+    "Volume (m³)",
+  );
+  const yV = (v: number) => box.B - (v / vMax) * (box.B - box.T);
+  const yA = (v: number) => box.B - (v / aMax) * (box.B - box.T);
+  const step = (box.R - box.L) / data.length;
+
+  const yTicks = [];
+  for (let i = 0; i <= 8; i++) {
+    const v = (vMax * i) / 8;
+    yTicks.push({ p: yV(v), t: v.toFixed(0) });
+  }
+  grid(
+    g,
+    box,
+    data.map((r, i) => ({ p: box.L + step * (i + 0.5), t: (r.chainage ?? 0).toFixed(3) })),
+    yTicks,
+  );
+  legend(g, box, [
+    { c: "#2563eb", t: "Volume (m³)" },
+    { c: "#dc2626", t: "Area (m²)" },
+    { c: "#6b7280", t: "Mean area (m²)", dash: true },
+  ]);
+
+  g.fillStyle = "#2563eb";
+  data.forEach((r, i) => {
+    const h = box.B - yV(Math.abs(r.volume ?? 0));
+    g.fillRect(box.L + step * i + step * 0.2, box.B - h, step * 0.6, h);
+  });
+
+  const line = (get: (i: number) => number | null, c: string, dash: boolean) => {
+    g.strokeStyle = c;
+    g.lineWidth = 2.5;
+    g.setLineDash(dash ? [8, 5] : []);
+    g.beginPath();
+    let started = false;
+    data.forEach((_, i) => {
+      const v = get(i);
+      if (v === null) return;
+      const x = box.L + step * (i + 0.5);
+      if (started) g.lineTo(x, yA(v));
+      else {
+        g.moveTo(x, yA(v));
+        started = true;
+      }
+    });
+    g.stroke();
+    g.setLineDash([]);
+  };
+  line((i) => data[i]?.area ?? null, "#dc2626", false);
+  line((i) => data[i]?.meanArea ?? null, "#6b7280", true);
+  return b64(cv);
+}
