@@ -267,7 +267,33 @@ export async function exportWorkbook(project: Project) {
     col = c + 1; // blank spacer column between sections
   });
 
+  // ---------- Charts (rendered images) ----------
+  try {
+    const ch = wb.addWorksheet("Charts");
+    ch.getCell("A1").value = "Visualization charts (rendered from the app)";
+    ch.getCell("A1").font = { name: "Arial", size: 12, bold: true };
+
+    let imgRow = 2;
+    const volPng = renderVolumeChart(project);
+    if (volPng) {
+      const id = wb.addImage({ base64: volPng, extension: "png" });
+      ch.addImage(id, { tl: { col: 0.2, row: imgRow }, ext: { width: 900, height: 380 } });
+      imgRow += 21;
+    }
+    sortedPre.slice(0, 40).forEach((s, i) => {
+      const post = [...project.post].sort((a, b) => a.chainage - b.chainage)[i];
+      const png = renderSectionChart(s, post, cfg, km);
+      if (!png) return;
+      const id = wb.addImage({ base64: png, extension: "png" });
+      ch.addImage(id, { tl: { col: 0.2, row: imgRow }, ext: { width: 900, height: 360 } });
+      imgRow += 20;
+    });
+  } catch {
+    // charts are best-effort; the workbook still exports without them
+  }
+
   wb.eachSheet((ws: any) => {
+
     ws.eachRow((row: any) => {
       row.eachCell((cell: any) => {
         if (!cell.font) cell.font = { name: "Arial", size: 10 };
