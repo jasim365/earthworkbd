@@ -201,11 +201,17 @@ export function sectionAreas(ground: SurveyPoint[], design: SurveyPoint[]): Area
   return { cut, fill, net: cut - fill };
 }
 
-/** Backwards-compatible signed area (positive = cutting). */
-/** Quantity area for a section: cutting only for khal re-excavation. */
-export function quantityArea(a: AreaResult, cfg: { cutOnly?: boolean }): number {
-  return cfg.cutOnly === false ? a.net : a.cut;
+/**
+ * Quantity area for a section:
+ *  - Canal excavation → cutting (excavation) area only
+ *  - Embankment re-sectioning → filling (earth) area only
+ * Setting cutOnly = false falls back to the signed net area.
+ */
+export function quantityArea(a: AreaResult, cfg: { cutOnly?: boolean; workType?: string }): number {
+  if (cfg.cutOnly === false) return a.net;
+  return cfg.workType === "EMBANKMENT_RESECTIONING" ? a.fill : a.cut;
 }
+
 
 export function sectionArea(ground: SurveyPoint[], design: SurveyPoint[]): number {
   return sectionAreas(ground, design).net;
