@@ -275,20 +275,35 @@ export async function exportWorkbook(project: Project) {
     ch.getCell("A1").font = { name: "Arial", size: 12, bold: true };
 
     let imgRow = 2;
+    let drawn = 0;
     const volPng = renderVolumeChart(project);
     if (volPng) {
       const id = wb.addImage({ base64: volPng, extension: "png" });
       ch.addImage(id, { tl: { col: 0.2, row: imgRow }, ext: { width: 900, height: 380 } });
       imgRow += 21;
+      drawn++;
     }
-    sortedPre.slice(0, 40).forEach((s, i) => {
-      const post = [...project.post].sort((a, b) => a.chainage - b.chainage)[i];
+    const MAX_SECTION_CHARTS = 40;
+    const sortedPost = [...project.post].sort((a, b) => a.chainage - b.chainage);
+    sortedPre.slice(0, MAX_SECTION_CHARTS).forEach((s) => {
+      const post = sortedPost.find((p) => Math.abs(p.chainage - s.chainage) < 1e-6);
       const png = renderSectionChart(s, post, cfg, km);
       if (!png) return;
       const id = wb.addImage({ base64: png, extension: "png" });
       ch.addImage(id, { tl: { col: 0.2, row: imgRow }, ext: { width: 900, height: 360 } });
       imgRow += 20;
+      drawn++;
     });
+    if (sortedPre.length > MAX_SECTION_CHARTS) {
+      ch.getCell(`A${imgRow + 1}`).value = `Showing first ${MAX_SECTION_CHARTS} of ${sortedPre.length} cross-sections. Full data is on the Chart_Datasets sheet.`;
+      ch.getCell(`A${imgRow + 1}`).font = { name: "Arial", size: 10, italic: true };
+    }
+    if (drawn === 0) {
+      ch.getCell("A3").value =
+        "No charts could be rendered: at least one cross-section with 2+ survey points is required.";
+      ch.getCell("A3").font = { name: "Arial", size: 10, italic: true };
+    }
+
   } catch {
     // charts are best-effort; the workbook still exports without them
   }
