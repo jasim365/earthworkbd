@@ -103,16 +103,8 @@ export function designWidthAt(chainage: number, cfg: DesignConfig): number {
   return cfg.widthStart + (cfg.widthEnd - cfg.widthStart) * chainageT(chainage, cfg);
 }
 
-/**
- * Design (template) profile for a section: trapezoidal prism about the centre line.
- * Canal excavation opens downwards (side slopes rise outwards from the bed),
- * embankment re-sectioning is a crest with slopes falling outwards.
- */
-export function designProfile(section: SectionData, cfg: DesignConfig): SurveyPoint[] {
-  const points = section.points;
-  const cl = centerLineOf(points, cfg.centerLineMode, cfg.manualCenterLine, section.clDist);
-  const level = designLevelAt(section.chainage, cfg);
-  const half = designWidthAt(section.chainage, cfg) / 2;
+/** Build the trapezoidal template about a given centre line offset. */
+function buildDesignProfile(points: SurveyPoint[], cl: number, level: number, half: number, cfg: DesignConfig): SurveyPoint[] {
   const xs = points.map((p) => p.distance);
   const left = points.length ? Math.min(...xs) : cl - half - 10;
   const right = points.length ? Math.max(...xs) : cl + half + 10;
@@ -140,6 +132,87 @@ export function designProfile(section: SectionData, cfg: DesignConfig): SurveyPo
     .sort((a, b) => a[0] - b[0])
     .map(([distance, rl], i) => ({ id: `d${i}`, distance, rl }));
 }
+
+const clCache = new Map<string, number>();
+
+/**
+ * LOWEST_EARTH: place the centre line where the earthwork quantity
+ * (cutting for excavation, filling for re-sectioning) is minimised.
+ * Coarse scan across the section followed by a local refinement.
+ */
+function minimalEarthCenterLine(
+  points: SurveyPoint[],
+  level: number,
+  half: number,
+  cfg: DesignConfig,
+): number {
+  if (points.length < 2) return points[0]?.distance ?? cfg.manualCenterLine;
+  const xs = points.map((p) => p.distance);
+  const lo = Math.min(...xs);
+  const hi = Math.max(...xs);
+  if (hi - lo <= 0) return lo;
+
+  const key = JSON.stringify([
+    points.map((p) => [p.distance, p.rl]),
+    level,
+    half,
+    cfg.csSlope,
+    cfg.rsSlope,
+    cfg.workType,
+    cfg.cutOnly,
+  ]);
+  const hit = clCache.get(key);
+  if (hit !== undefined) return hit;
+
+  const cost = (cl: number) =>
+    quantityArea(sectionAreas(points, buildDesignProfile(points, cl, level, half, cfg)), cfg);
+
+  let bestCl = (lo + hi) / 2;
+  let bestCost = Infinity;
+  const coarse = 48;
+  for (let i = 0; i <= coarse; i++) {
+    const cl = lo + ((hi - lo) * i) / coarse;
+    const c = cost(cl);
+    if (c < bestCost - 1e-9) {
+      bestCost = c;
+      bestCl = cl;
+    }
+  }
+  // golden-ish local refinement around the best coarse sample
+  let step = (hi - lo) / coarse;
+  for (let pass = 0; pass < 6; pass++) {
+    step /= 2;
+    for (const cl of [bestCl - step, bestCl + step]) {
+      if (cl < lo || cl > hi) continue;
+      const c = cost(cl);
+      if (c < bestCost - 1e-9) {
+        bestCost = c;
+        bestCl = cl;
+      }
+    }
+  }
+
+  if (clCache.size > 500) clCache.clear();
+  clCache.set(key, bestCl);
+  return bestCl;
+}
+
+/**
+ * Design (template) profile for a section: trapezoidal prism about the centre line.
+ * Canal excavation opens downwards (side slopes rise outwards from the bed),
+ * embankment re-sectioning is a crest with slopes falling outwards.
+ */
+export function designProfile(section: SectionData, cfg: DesignConfig): SurveyPoint[] {
+  const points = section.points;
+  const level = designLevelAt(section.chainage, cfg);
+  const half = designWidthAt(section.chainage, cfg) / 2;
+  const cl =
+    cfg.centerLineMode === "LOWEST_EARTH"
+      ? minimalEarthCenterLine(points, level, half, cfg)
+      : centerLineOf(points, cfg.centerLineMode, cfg.manualCenterLine, section.clDist);
+  return buildDesignProfile(points, cl, level, half, cfg);
+}
+
 
 /** Interpolate an RL on a polyline at a given distance (null outside range). */
 export function interpAt(points: SurveyPoint[], x: number): number | null {
