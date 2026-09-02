@@ -26,7 +26,7 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { NoProject } from "@/components/no-project";
 import { useActiveProject } from "@/lib/earthwork/store";
-import { abstractRows, projectStats, fmt } from "@/lib/earthwork/calc";
+import { abstractRows, centerLineRows, projectStats, fmt } from "@/lib/earthwork/calc";
 import type { Project } from "@/lib/earthwork/types";
 
 export const Route = createFileRoute("/analysis")({
@@ -79,10 +79,12 @@ function AnalysisPage() {
         </TabsList>
         <TabsContent value="pre" className="mt-4 space-y-6">
           <MeanAreaTable project={project} kind="pre" />
+          <CenterLineTable project={project} kind="pre" />
           <MeanAreaChart project={project} kind="pre" />
         </TabsContent>
         <TabsContent value="post" className="mt-4 space-y-6">
           <MeanAreaTable project={project} kind="post" />
+          <CenterLineTable project={project} kind="post" />
           <MeanAreaChart project={project} kind="post" />
         </TabsContent>
       </Tabs>
