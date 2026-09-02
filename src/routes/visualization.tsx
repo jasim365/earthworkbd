@@ -217,7 +217,8 @@ function VisualizationPage() {
           <CardTitle className="text-base">Interactive Canvas Cross-Section</CardTitle>
           <CardDescription>
             1 m RL grid and 5 m offset grid — red dashed = pre-work RL, green solid = post-work RL,
-            grey dashed = design template. Hover to read levels.
+            grey dashed = design template, violet dotted = selected centre line
+            {cfg.centerLineMode === "LOWEST_EARTH" ? " (lowest-earth optimum)" : ""}. Hover to read levels.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -225,9 +226,12 @@ function VisualizationPage() {
             pre={pre?.points ?? []}
             post={post?.points ?? []}
             design={design}
+            centerLine={centerLine}
+            centerLineLabel={cfg.centerLineMode === "LOWEST_EARTH" ? "CL (lowest earth)" : "CL"}
           />
         </CardContent>
       </Card>
+
     </div>
   );
 }
