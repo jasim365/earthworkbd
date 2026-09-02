@@ -158,7 +158,7 @@ export function CrossSectionCanvas({
     const ro = new ResizeObserver(draw);
     ro.observe(wrap);
     return () => ro.disconnect();
-  }, [pre, post, design, vStep, hStep, height, hover]);
+  }, [pre, post, design, centerLine, centerLineLabel, vStep, hStep, height, hover]);
 
   const interp = (pts: SurveyPoint[], d: number): number | null => {
     const p = [...pts].sort((a, b) => a.distance - b.distance);
