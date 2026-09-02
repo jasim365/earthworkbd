@@ -123,6 +123,25 @@ export function CrossSectionCanvas({
       line(pre, "#dc2626", [7, 4]);
       line(post, "#16a34a", []);
 
+      if (typeof centerLine === "number" && Number.isFinite(centerLine)) {
+        const cx = sx(centerLine);
+        ctx.save();
+        ctx.strokeStyle = "#7c3aed";
+        ctx.lineWidth = 1.75;
+        ctx.setLineDash([2, 3]);
+        ctx.beginPath();
+        ctx.moveTo(cx, PAD.top);
+        ctx.lineTo(cx, PAD.top + plotH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#7c3aed";
+        ctx.font = "600 11px system-ui, sans-serif";
+        ctx.textAlign = cx > PAD.left + plotW - 60 ? "right" : "left";
+        ctx.fillText(`${centerLineLabel} ${centerLine.toFixed(2)} m`, cx + (ctx.textAlign === "right" ? -5 : 5), PAD.top + 12);
+        ctx.restore();
+      }
+
+
       if (hover) {
         ctx.save();
         ctx.strokeStyle = fg;
