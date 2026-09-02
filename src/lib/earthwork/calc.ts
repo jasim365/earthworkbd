@@ -206,12 +206,54 @@ export function designProfile(section: SectionData, cfg: DesignConfig): SurveyPo
   const points = section.points;
   const level = designLevelAt(section.chainage, cfg);
   const half = designWidthAt(section.chainage, cfg) / 2;
-  const cl =
-    cfg.centerLineMode === "LOWEST_EARTH"
-      ? minimalEarthCenterLine(points, level, half, cfg)
-      : centerLineOf(points, cfg.centerLineMode, cfg.manualCenterLine, section.clDist);
+  const cl = resolvedCenterLine(section, cfg);
   return buildDesignProfile(points, cl, level, half, cfg);
 }
+
+/** Centre-line offset actually used for a section (optimised for LOWEST_EARTH). */
+export function resolvedCenterLine(section: SectionData, cfg: DesignConfig): number {
+  if (cfg.centerLineMode === "LOWEST_EARTH") {
+    const level = designLevelAt(section.chainage, cfg);
+    const half = designWidthAt(section.chainage, cfg) / 2;
+    return minimalEarthCenterLine(section.points, level, half, cfg);
+  }
+  return centerLineOf(section.points, cfg.centerLineMode, cfg.manualCenterLine, section.clDist);
+}
+
+export interface CenterLineRow {
+  chainage: number;
+  /** offset of the centre line from the left survey origin, m */
+  centerLine: number;
+  /** existing ground RL at the centre line, mSOB */
+  groundRL: number | null;
+  /** design bed / crest level at that chainage, mSOB */
+  designRL: number;
+  cut: number;
+  fill: number;
+  /** which quantity the optimiser minimised at this section */
+  minimized: "cut" | "fill";
+}
+
+/** Per-chainage centre-line placement summary. */
+export function centerLineRows(sections: SectionData[], cfg: DesignConfig): CenterLineRow[] {
+  const minimized: "cut" | "fill" = cfg.workType === "EMBANKMENT_RESECTIONING" ? "fill" : "cut";
+  return [...sections]
+    .sort((a, b) => toMeters(a.chainage, cfg.chainageUnit) - toMeters(b.chainage, cfg.chainageUnit))
+    .map((s) => {
+      const cl = resolvedCenterLine(s, cfg);
+      const a = sectionAreas(s.points, designProfile(s, cfg));
+      return {
+        chainage: s.chainage,
+        centerLine: cl,
+        groundRL: interpAt(s.points, cl),
+        designRL: designLevelAt(s.chainage, cfg),
+        cut: a.cut,
+        fill: a.fill,
+        minimized,
+      };
+    });
+}
+
 
 
 /** Interpolate an RL on a polyline at a given distance (null outside range). */

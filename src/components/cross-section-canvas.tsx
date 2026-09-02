@@ -6,6 +6,10 @@ interface Props {
   pre: SurveyPoint[];
   post: SurveyPoint[];
   design: SurveyPoint[];
+  /** resolved centre-line offset (m) to mark on the plot */
+  centerLine?: number | null;
+  /** label drawn next to the centre line */
+  centerLineLabel?: string;
   /** vertical grid spacing in metres (0–5 m band lines) */
   vStep?: number;
   /** horizontal (offset) grid spacing in metres */
@@ -19,7 +23,16 @@ const PAD = { left: 52, right: 16, top: 16, bottom: 34 };
  * Interactive canvas cross-section: red dashed pre-work RL, green solid
  * post-work RL, dashed design template, on a 0–5 m gridded frame.
  */
-export function CrossSectionCanvas({ pre, post, design, vStep = 1, hStep = 5, height = 380 }: Props) {
+export function CrossSectionCanvas({
+  pre,
+  post,
+  design,
+  centerLine = null,
+  centerLineLabel = "CL",
+  vStep = 1,
+  hStep = 5,
+  height = 380,
+}: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hover, setHover] = useState<{ x: number; d: number; pre: number | null; post: number | null } | null>(null);
@@ -110,6 +123,25 @@ export function CrossSectionCanvas({ pre, post, design, vStep = 1, hStep = 5, he
       line(pre, "#dc2626", [7, 4]);
       line(post, "#16a34a", []);
 
+      if (typeof centerLine === "number" && Number.isFinite(centerLine)) {
+        const cx = sx(centerLine);
+        ctx.save();
+        ctx.strokeStyle = "#7c3aed";
+        ctx.lineWidth = 1.75;
+        ctx.setLineDash([2, 3]);
+        ctx.beginPath();
+        ctx.moveTo(cx, PAD.top);
+        ctx.lineTo(cx, PAD.top + plotH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#7c3aed";
+        ctx.font = "600 11px system-ui, sans-serif";
+        ctx.textAlign = cx > PAD.left + plotW - 60 ? "right" : "left";
+        ctx.fillText(`${centerLineLabel} ${centerLine.toFixed(2)} m`, cx + (ctx.textAlign === "right" ? -5 : 5), PAD.top + 12);
+        ctx.restore();
+      }
+
+
       if (hover) {
         ctx.save();
         ctx.strokeStyle = fg;
@@ -126,7 +158,7 @@ export function CrossSectionCanvas({ pre, post, design, vStep = 1, hStep = 5, he
     const ro = new ResizeObserver(draw);
     ro.observe(wrap);
     return () => ro.disconnect();
-  }, [pre, post, design, vStep, hStep, height, hover]);
+  }, [pre, post, design, centerLine, centerLineLabel, vStep, hStep, height, hover]);
 
   const interp = (pts: SurveyPoint[], d: number): number | null => {
     const p = [...pts].sort((a, b) => a.distance - b.distance);
