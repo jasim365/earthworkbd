@@ -164,6 +164,74 @@ function MeanAreaTable({ project, kind }: { project: Project; kind: "pre" | "pos
   );
 }
 
+function CenterLineTable({ project, kind }: { project: Project; kind: "pre" | "post" }) {
+  const cfg = project.config;
+  const rows = centerLineRows(project[kind], cfg);
+  const lowest = cfg.centerLineMode === "LOWEST_EARTH";
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Centre-line placement per chainage</CardTitle>
+        <CardDescription>
+          {lowest
+            ? "Lowest Earth — the centre line offset at each section is solved so the quantity below is the minimum possible."
+            : `Centre line mode: ${cfg.centerLineMode.replace("_", " ")}. Switch to Lowest Earth to minimise the quantity automatically.`}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-center">Ch. in {cfg.chainageUnit}.</TableHead>
+              <TableHead className="text-center">CL offset (m)</TableHead>
+              <TableHead className="text-center">CL ground RL</TableHead>
+              <TableHead className="text-center">Design RL</TableHead>
+              <TableHead className="text-center">Cut area (m²)</TableHead>
+              <TableHead className="text-center">Fill area (m²)</TableHead>
+              <TableHead className="text-center">Minimised</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((r, i) => (
+              <TableRow key={i}>
+                <TableCell className="text-center tabular-nums">{r.chainage.toFixed(3)}</TableCell>
+                <TableCell className="text-center tabular-nums">{fmt(r.centerLine, 2)}</TableCell>
+                <TableCell className="text-center tabular-nums">
+                  {r.groundRL === null ? "—" : fmt(r.groundRL, 3)}
+                </TableCell>
+                <TableCell className="text-center tabular-nums">{fmt(r.designRL, 3)}</TableCell>
+                <TableCell
+                  className={`text-center tabular-nums ${r.minimized === "cut" ? "font-semibold" : ""}`}
+                >
+                  {fmt(r.cut, 3)}
+                </TableCell>
+                <TableCell
+                  className={`text-center tabular-nums ${r.minimized === "fill" ? "font-semibold" : ""}`}
+                >
+                  {fmt(r.fill, 3)}
+                </TableCell>
+                <TableCell className="text-center">
+                  {lowest ? (r.minimized === "fill" ? "Filling" : "Cutting") : "—"}
+                </TableCell>
+              </TableRow>
+            ))}
+            {rows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                  No {kind}-work sections yet.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+
+
 function MeanAreaChart({ project, kind }: { project: Project; kind: "pre" | "post" }) {
   const cfg = project.config;
   const { rows } = abstractRows(project[kind], cfg);
