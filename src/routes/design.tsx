@@ -133,9 +133,18 @@ function DesignPage() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Lowest Earth shifts the alignment to the minimum ground RL so overall earthwork volume
-                is minimised. Per-section CL Dist. entries override this value.
+                <span className="font-medium text-foreground">Center line calculation logic.</span>{" "}
+                <b>Manual</b> fixes the alignment at the offset you type. <b>Middle</b> uses the mid-point
+                of the surveyed width and <b>StartX</b> anchors it at the first offset.{" "}
+                <b>Lowest Earth</b> does not simply snap to the lowest ground point — for every section
+                the app slides the design template across the surveyed width and keeps the offset where the
+                earthwork quantity is smallest ({" "}
+                {cfg.workType === "EMBANKMENT_RESECTIONING" ? "filling area" : "cutting area"} for the
+                current work type), so the volume of earth is minimised chainage by chainage. It re-solves
+                automatically whenever pre-work RLs, design level, width or slopes change. Per-section
+                CL Dist. entries override a Manual centre line.
               </p>
+
             </div>
             {cfg.centerLineMode === "MANUAL" && (
               <NumField
