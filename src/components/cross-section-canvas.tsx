@@ -6,6 +6,10 @@ interface Props {
   pre: SurveyPoint[];
   post: SurveyPoint[];
   design: SurveyPoint[];
+  /** resolved centre-line offset (m) to mark on the plot */
+  centerLine?: number | null;
+  /** label drawn next to the centre line */
+  centerLineLabel?: string;
   /** vertical grid spacing in metres (0–5 m band lines) */
   vStep?: number;
   /** horizontal (offset) grid spacing in metres */
@@ -19,7 +23,16 @@ const PAD = { left: 52, right: 16, top: 16, bottom: 34 };
  * Interactive canvas cross-section: red dashed pre-work RL, green solid
  * post-work RL, dashed design template, on a 0–5 m gridded frame.
  */
-export function CrossSectionCanvas({ pre, post, design, vStep = 1, hStep = 5, height = 380 }: Props) {
+export function CrossSectionCanvas({
+  pre,
+  post,
+  design,
+  centerLine = null,
+  centerLineLabel = "CL",
+  vStep = 1,
+  hStep = 5,
+  height = 380,
+}: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hover, setHover] = useState<{ x: number; d: number; pre: number | null; post: number | null } | null>(null);
