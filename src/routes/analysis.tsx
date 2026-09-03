@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Ruler, TrendingUp, Wallet, Layers } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Ruler, TrendingUp, Wallet, Layers, AlertTriangle, CheckCircle2 } from "lucide-react";
 import {
   Bar,
   CartesianGrid,
@@ -13,6 +14,9 @@ import {
 } from "recharts";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -26,7 +30,14 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { NoProject } from "@/components/no-project";
 import { useActiveProject } from "@/lib/earthwork/store";
-import { abstractRows, centerLineRows, projectStats, fmt } from "@/lib/earthwork/calc";
+import {
+  abstractRows,
+  centerLineRows,
+  centerLineCompare,
+  validateSections,
+  projectStats,
+  fmt,
+} from "@/lib/earthwork/calc";
 import type { Project } from "@/lib/earthwork/types";
 
 export const Route = createFileRoute("/analysis")({
@@ -78,13 +89,17 @@ function AnalysisPage() {
           <TabsTrigger value="post">Post-work</TabsTrigger>
         </TabsList>
         <TabsContent value="pre" className="mt-4 space-y-6">
+          <ValidationPanel project={project} kind="pre" />
           <MeanAreaTable project={project} kind="pre" />
           <CenterLineTable project={project} kind="pre" />
+          <CompareModePanel project={project} kind="pre" />
           <MeanAreaChart project={project} kind="pre" />
         </TabsContent>
         <TabsContent value="post" className="mt-4 space-y-6">
+          <ValidationPanel project={project} kind="post" />
           <MeanAreaTable project={project} kind="post" />
           <CenterLineTable project={project} kind="post" />
+          <CompareModePanel project={project} kind="post" />
           <MeanAreaChart project={project} kind="post" />
         </TabsContent>
       </Tabs>
@@ -232,6 +247,172 @@ function CenterLineTable({ project, kind }: { project: Project; kind: "pre" | "p
   );
 }
 
+function ValidationPanel({ project, kind }: { project: Project; kind: "pre" | "post" }) {
+  const issues = validateSections(project[kind], project.config, kind);
+  if (issues.length === 0)
+    return (
+      <Alert>
+        <CheckCircle2 className="size-4" />
+        <AlertTitle>Survey data validated</AlertTitle>
+        <AlertDescription>
+          Chainages are unique and every RL / offset is finite — centre-line calculations are safe.
+        </AlertDescription>
+      </Alert>
+    );
+  const errors = issues.filter((i) => i.level === "error");
+  const warnings = issues.filter((i) => i.level === "warning");
+  return (
+    <div className="space-y-3">
+      {errors.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="size-4" />
+          <AlertTitle>{errors.length} data error(s) block reliable calculation</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc space-y-1 pl-4">
+              {errors.map((e, i) => (
+                <li key={i}>{e.message}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+      {warnings.length > 0 && (
+        <Alert>
+          <AlertTriangle className="size-4" />
+          <AlertTitle>{warnings.length} warning(s)</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc space-y-1 pl-4">
+              {warnings.map((w, i) => (
+                <li key={i}>{w.message}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+}
+
+const COMPARE_COLORS: Record<string, string> = {
+  MANUAL: "hsl(var(--muted-foreground))",
+  MIDDLE: "hsl(var(--primary))",
+  LOWEST_EARTH: "hsl(var(--destructive))",
+};
+
+function CompareModePanel({ project, kind }: { project: Project; kind: "pre" | "post" }) {
+  const cfg = project.config;
+  const [on, setOn] = useState(false);
+  const results = useMemo(() => (on ? centerLineCompare(project[kind], cfg) : []), [on, project, kind, cfg]);
+  const embankment = cfg.workType === "EMBANKMENT_RESECTIONING";
+  const key = embankment ? "fillVolume" : "cutVolume";
+  const best = results.length
+    ? results.reduce((b, r) => (r[key] < b[key] ? r : b))
+    : null;
+
+  const data = (results[0]?.rows ?? []).map((r, i) => {
+    const row: Record<string, number | null> = { ch: r.chainage };
+    results.forEach((res) => {
+      row[res.mode] = res.rows[i]?.centerLine ?? null;
+    });
+    return row;
+  });
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle className="text-base">Compare centre-line strategies</CardTitle>
+          <CardDescription>
+            Overlay Manual, Middle and Lowest Earth centre lines and compare total cut / fill.
+          </CardDescription>
+        </div>
+        <div className="flex items-center gap-2">
+          <Label htmlFor={`cmp-${kind}`} className="text-sm">
+            Compare mode
+          </Label>
+          <Switch id={`cmp-${kind}`} checked={on} onCheckedChange={setOn} />
+        </div>
+      </CardHeader>
+      {on && (
+        <CardContent className="space-y-6">
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="ch"
+                  tick={{ fontSize: 11 }}
+                  label={{
+                    value: `Chainage (${cfg.chainageUnit})`,
+                    position: "insideBottom",
+                    offset: -12,
+                    fontSize: 11,
+                  }}
+                />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  label={{ value: "CL offset (m)", angle: -90, position: "insideLeft", fontSize: 11 }}
+                />
+                <Tooltip formatter={(v: number) => fmt(Number(v))} />
+                <Legend />
+                {results.map((r) => (
+                  <Line
+                    key={r.mode}
+                    type="monotone"
+                    dataKey={r.mode}
+                    name={`${r.label} CL`}
+                    stroke={COMPARE_COLORS[r.mode]}
+                    strokeDasharray={r.mode === "MIDDLE" ? "5 4" : undefined}
+                    dot={{ r: 2 }}
+                    isAnimationActive={false}
+                    connectNulls
+                  />
+                ))}
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Centre-line mode</TableHead>
+                <TableHead className="text-center">Cut volume (m³)</TableHead>
+                <TableHead className="text-center">Fill volume (m³)</TableHead>
+                <TableHead className="text-center">
+                  Δ vs best {embankment ? "filling" : "cutting"} (m³)
+                </TableHead>
+                <TableHead className="text-center">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {results.map((r) => (
+                <TableRow key={r.mode}>
+                  <TableCell>{r.label}</TableCell>
+                  <TableCell className="text-center tabular-nums">{fmt(r.cutVolume)}</TableCell>
+                  <TableCell className="text-center tabular-nums">{fmt(r.fillVolume)}</TableCell>
+                  <TableCell className="text-center tabular-nums">
+                    {best ? fmt(r[key] - best[key]) : "—"}
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
+                    {best && r.mode === best.mode ? "Lowest quantity" : ""}
+                    {cfg.centerLineMode === r.mode ? " · In use" : ""}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {results.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
+                    No {kind}-work sections to compare.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
 
 
 function MeanAreaChart({ project, kind }: { project: Project; kind: "pre" | "post" }) {
