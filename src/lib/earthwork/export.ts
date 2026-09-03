@@ -8,6 +8,8 @@ import {
   interpAt,
   sectionAreas,
   abstractRows,
+  centerLineRows,
+  centerLineCompare,
 } from "./calc";
 
 const argb = (hex: string) => "FF" + hex.replace("#", "").toUpperCase();
