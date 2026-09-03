@@ -321,7 +321,7 @@ export function centerLineCompare(sections: SectionData[], cfg: DesignConfig): C
       const d = Math.abs(
         toMeters(cur.chainage, cfg.chainageUnit) - toMeters(prev.chainage, cfg.chainageUnit),
       );
-      if (d > (cfg.maxGapMeters ?? 1000)) continue;
+      if (d > 1000) continue;
       cutVolume += ((prev.cut + cur.cut) / 2) * d;
       fillVolume += ((prev.fill + cur.fill) / 2) * d;
     }
