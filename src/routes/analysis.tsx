@@ -89,13 +89,17 @@ function AnalysisPage() {
           <TabsTrigger value="post">Post-work</TabsTrigger>
         </TabsList>
         <TabsContent value="pre" className="mt-4 space-y-6">
+          <ValidationPanel project={project} kind="pre" />
           <MeanAreaTable project={project} kind="pre" />
           <CenterLineTable project={project} kind="pre" />
+          <CompareModePanel project={project} kind="pre" />
           <MeanAreaChart project={project} kind="pre" />
         </TabsContent>
         <TabsContent value="post" className="mt-4 space-y-6">
+          <ValidationPanel project={project} kind="post" />
           <MeanAreaTable project={project} kind="post" />
           <CenterLineTable project={project} kind="post" />
+          <CompareModePanel project={project} kind="post" />
           <MeanAreaChart project={project} kind="post" />
         </TabsContent>
       </Tabs>
