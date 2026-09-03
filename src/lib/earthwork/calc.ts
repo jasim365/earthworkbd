@@ -254,6 +254,184 @@ export function centerLineRows(sections: SectionData[], cfg: DesignConfig): Cent
     });
 }
 
+/** Centre-line modes that can be compared side by side. */
+export type CompareMode = "MANUAL" | "MIDDLE" | "LOWEST_EARTH";
+
+export const COMPARE_MODES: Array<{ mode: CompareMode; label: string }> = [
+  { mode: "MANUAL", label: "Manual" },
+  { mode: "MIDDLE", label: "Middle" },
+  { mode: "LOWEST_EARTH", label: "Lowest Earth" },
+];
+
+/** Centre-line offset a section would get under an arbitrary mode. */
+export function centerLineForMode(
+  section: SectionData,
+  cfg: DesignConfig,
+  mode: CompareMode,
+): number {
+  if (mode === "LOWEST_EARTH") {
+    return minimalEarthCenterLine(
+      section.points,
+      designLevelAt(section.chainage, cfg),
+      designWidthAt(section.chainage, cfg) / 2,
+      cfg,
+    );
+  }
+  return centerLineOf(
+    section.points,
+    mode,
+    cfg.manualCenterLine,
+    mode === "MANUAL" ? section.clDist : undefined,
+  );
+}
+
+export interface CompareRow {
+  chainage: number;
+  centerLine: number;
+  cut: number;
+  fill: number;
+}
+
+export interface CompareResult {
+  mode: CompareMode;
+  label: string;
+  rows: CompareRow[];
+  cutVolume: number;
+  fillVolume: number;
+}
+
+/** Cut / fill areas and mean-area volumes for each centre-line strategy. */
+export function centerLineCompare(sections: SectionData[], cfg: DesignConfig): CompareResult[] {
+  const sorted = [...sections].sort(
+    (a, b) => toMeters(a.chainage, cfg.chainageUnit) - toMeters(b.chainage, cfg.chainageUnit),
+  );
+  return COMPARE_MODES.map(({ mode, label }) => {
+    const rows: CompareRow[] = sorted.map((s) => {
+      const cl = centerLineForMode(s, cfg, mode);
+      const level = designLevelAt(s.chainage, cfg);
+      const half = designWidthAt(s.chainage, cfg) / 2;
+      const a = sectionAreas(s.points, buildDesignProfile(s.points, cl, level, half, cfg));
+      return { chainage: s.chainage, centerLine: cl, cut: a.cut, fill: a.fill };
+    });
+    let cutVolume = 0;
+    let fillVolume = 0;
+    for (let i = 1; i < rows.length; i++) {
+      const prev = rows[i - 1]!;
+      const cur = rows[i]!;
+      const d = Math.abs(
+        toMeters(cur.chainage, cfg.chainageUnit) - toMeters(prev.chainage, cfg.chainageUnit),
+      );
+      if (d > (cfg.maxGapMeters ?? 1000)) continue;
+      cutVolume += ((prev.cut + cur.cut) / 2) * d;
+      fillVolume += ((prev.fill + cur.fill) / 2) * d;
+    }
+    return { mode, label, rows, cutVolume, fillVolume };
+  });
+}
+
+export interface ValidationIssue {
+  level: "error" | "warning";
+  message: string;
+}
+
+/** Guard rails for centre-line / volume maths: missing, duplicate or non-finite data. */
+export function validateSections(
+  sections: SectionData[],
+  cfg: DesignConfig,
+  kind: "pre" | "post" = "pre",
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const at = (ch: number) => `CH ${Number.isFinite(ch) ? ch : "?"} ${cfg.chainageUnit}`;
+
+  if (sections.length === 0) {
+    issues.push({ level: "warning", message: `No ${kind}-work sections entered yet.` });
+    return issues;
+  }
+  if (sections.length < 2) {
+    issues.push({
+      level: "warning",
+      message: "At least two chainages are required before any volume can be computed.",
+    });
+  }
+
+  const seen = new Map<number, number>();
+  sections.forEach((s) => {
+    if (!Number.isFinite(s.chainage)) {
+      issues.push({ level: "error", message: `A ${kind}-work section has a missing or non-numeric chainage.` });
+      return;
+    }
+    const k = Number(s.chainage.toFixed(6));
+    seen.set(k, (seen.get(k) ?? 0) + 1);
+  });
+  seen.forEach((n, ch) => {
+    if (n > 1)
+      issues.push({
+        level: "error",
+        message: `Duplicate chainage ${at(ch)} appears ${n} times — remove or merge the duplicates.`,
+      });
+  });
+
+  sections.forEach((s) => {
+    const pts = s.points ?? [];
+    if (pts.length < 2) {
+      issues.push({
+        level: "error",
+        message: `${at(s.chainage)} has ${pts.length} survey point(s); at least 2 are required for an area.`,
+      });
+      return;
+    }
+    const badRl = pts.filter((p) => !Number.isFinite(p.rl)).length;
+    const badX = pts.filter((p) => !Number.isFinite(p.distance)).length;
+    if (badRl)
+      issues.push({
+        level: "error",
+        message: `${at(s.chainage)} has ${badRl} point(s) with a missing or non-finite RL.`,
+      });
+    if (badX)
+      issues.push({
+        level: "error",
+        message: `${at(s.chainage)} has ${badX} point(s) with a missing or non-finite offset distance.`,
+      });
+
+    const xs = new Map<number, number>();
+    pts.forEach((p) => {
+      if (!Number.isFinite(p.distance)) return;
+      const k = Number(p.distance.toFixed(4));
+      xs.set(k, (xs.get(k) ?? 0) + 1);
+    });
+    const dupX = [...xs.entries()].filter(([, n]) => n > 1).map(([x]) => x);
+    if (dupX.length)
+      issues.push({
+        level: "warning",
+        message: `${at(s.chainage)} has duplicate offsets (${dupX.slice(0, 5).join(", ")} m) — only the last RL is used.`,
+      });
+
+    if (cfg.centerLineMode === "MANUAL") {
+      const cl = typeof s.clDist === "number" && Number.isFinite(s.clDist) ? s.clDist : cfg.manualCenterLine;
+      const lo = Math.min(...pts.map((p) => p.distance));
+      const hi = Math.max(...pts.map((p) => p.distance));
+      if (Number.isFinite(lo) && Number.isFinite(hi) && (cl < lo || cl > hi))
+        issues.push({
+          level: "warning",
+          message: `${at(s.chainage)}: manual centre line ${cl} m lies outside the surveyed offsets (${lo}–${hi} m).`,
+        });
+    }
+  });
+
+  const span = [cfg.startChainage, cfg.endChainage];
+  const lo = Math.min(...span);
+  const hi = Math.max(...span);
+  const outside = sections.filter(
+    (s) => Number.isFinite(s.chainage) && (s.chainage < lo - 1e-9 || s.chainage > hi + 1e-9),
+  );
+  if (outside.length)
+    issues.push({
+      level: "warning",
+      message: `${outside.length} section(s) fall outside the design range ${lo}–${hi} ${cfg.chainageUnit}; design level/width is clamped there.`,
+    });
+
+  return issues;
+}
 
 
 /** Interpolate an RL on a polyline at a given distance (null outside range). */
