@@ -268,7 +268,108 @@ export async function exportWorkbook(project: Project) {
     col = c + 1; // blank spacer column between sections
   });
 
-  // ---------- Charts (rendered images) ----------
+  // ---------- Center Line ----------
+  const cl = wb.addWorksheet("Center Line");
+  cl.getCell("A1").value = "Centre-line placement & optimisation summary";
+  cl.getCell("A1").font = { name: "Arial", size: 12, bold: true };
+  cl.getCell("A2").value = `Mode: ${cfg.centerLineMode.replace(/_/g, " ")} — minimised quantity: ${
+    cfg.workType === "EMBANKMENT_RESECTIONING" ? "Filling" : "Cutting"
+  }`;
+  cl.getCell("A2").font = { name: "Arial", size: 10, italic: true };
+  [22, 16, 16, 16, 16, 16, 14].forEach((w, i) => (cl.getColumn(i + 1).width = w));
+
+  const clHeads = [
+    `Ch. in ${km ? "KM" : "M"}.`,
+    "CL offset (m)",
+    "CL ground RL",
+    "Design RL",
+    "Cut area (Sqm)",
+    "Fill area (Sqm)",
+    "Minimised",
+  ];
+  clHeads.forEach((h, i) => header(cl, 4, i + 1, h));
+  const clRows = centerLineRows(sortedPre, cfg);
+  clRows.forEach((r, i) => {
+    const row = 5 + i;
+    const vals: Array<string | number> = [
+      Number(r.chainage.toFixed(3)),
+      Number(r.centerLine.toFixed(3)),
+      r.groundRL === null ? "-" : Number(r.groundRL.toFixed(3)),
+      Number(r.designRL.toFixed(3)),
+      Number(r.cut.toFixed(3)),
+      Number(r.fill.toFixed(3)),
+      cfg.centerLineMode === "LOWEST_EARTH" ? (r.minimized === "fill" ? "Filling" : "Cutting") : "-",
+    ];
+    vals.forEach((v, c) => {
+      const cell = cl.getCell(row, c + 1);
+      cell.value = v;
+      cell.font = { name: "Arial", size: 10 };
+      if (typeof v === "number") cell.numFmt = "0.000";
+      cell.alignment = { horizontal: "center" };
+    });
+  });
+  const lastCl = 4 + clRows.length;
+  if (clRows.length) {
+    label(cl, lastCl + 1, 4, "Total =");
+    cl.getCell(lastCl + 1, 5).value = { formula: `SUM(E5:E${lastCl})` } as any;
+    cl.getCell(lastCl + 1, 6).value = { formula: `SUM(F5:F${lastCl})` } as any;
+    [5, 6].forEach((c) => {
+      const cell = cl.getCell(lastCl + 1, c);
+      cell.numFmt = "0.000";
+      cell.font = { name: "Arial", size: 10, bold: true };
+      cell.alignment = { horizontal: "center" };
+    });
+  }
+
+  // Comparison of centre-line strategies
+  const cmpTop = lastCl + 4;
+  cl.getCell(cmpTop - 1, 1).value = "Centre-line strategy comparison (mean-area volumes)";
+  cl.getCell(cmpTop - 1, 1).font = { name: "Arial", size: 11, bold: true };
+  ["Mode", "Cut volume (Cum)", "Fill volume (Cum)", "Avg CL offset (m)", "Selected"].forEach((h, i) =>
+    header(cl, cmpTop, i + 1, h),
+  );
+  const comparisons = centerLineCompare(sortedPre, cfg);
+  comparisons.forEach((c, i) => {
+    const row = cmpTop + 1 + i;
+    const avg = c.rows.length ? c.rows.reduce((s, r) => s + r.centerLine, 0) / c.rows.length : 0;
+    const vals: Array<string | number> = [
+      c.label,
+      Number(c.cutVolume.toFixed(3)),
+      Number(c.fillVolume.toFixed(3)),
+      Number(avg.toFixed(3)),
+      cfg.centerLineMode === c.mode ? "Yes" : "",
+    ];
+    vals.forEach((v, k) => {
+      const cell = cl.getCell(row, k + 1);
+      cell.value = v;
+      cell.font = { name: "Arial", size: 10 };
+      if (typeof v === "number") cell.numFmt = "0.000";
+      cell.alignment = { horizontal: "center" };
+    });
+  });
+
+  // Per-chainage centre-line offsets under each strategy
+  const perTop = cmpTop + comparisons.length + 3;
+  cl.getCell(perTop - 1, 1).value = "Per-chainage centre-line offsets by strategy (m)";
+  cl.getCell(perTop - 1, 1).font = { name: "Arial", size: 11, bold: true };
+  header(cl, perTop, 1, `Ch. in ${km ? "KM" : "M"}.`);
+  comparisons.forEach((c, i) => header(cl, perTop, i + 2, c.label));
+  (comparisons[0]?.rows ?? []).forEach((r, rowIdx) => {
+    const row = perTop + 1 + rowIdx;
+    const cell = cl.getCell(row, 1);
+    cell.value = Number(r.chainage.toFixed(3));
+    cell.numFmt = "0.000";
+    cell.alignment = { horizontal: "center" };
+    comparisons.forEach((c, i) => {
+      const v = c.rows[rowIdx];
+      const cc = cl.getCell(row, i + 2);
+      cc.value = v ? Number(v.centerLine.toFixed(3)) : "-";
+      cc.numFmt = "0.000";
+      cc.alignment = { horizontal: "center" };
+    });
+  });
+
+
   try {
     const ch = wb.addWorksheet("Charts");
     ch.getCell("A1").value = "Visualization charts (rendered from the app)";
