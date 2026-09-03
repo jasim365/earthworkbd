@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Ruler, TrendingUp, Wallet, Layers } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Ruler, TrendingUp, Wallet, Layers, AlertTriangle, CheckCircle2 } from "lucide-react";
 import {
   Bar,
   CartesianGrid,
@@ -13,6 +14,9 @@ import {
 } from "recharts";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -26,7 +30,14 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { NoProject } from "@/components/no-project";
 import { useActiveProject } from "@/lib/earthwork/store";
-import { abstractRows, centerLineRows, projectStats, fmt } from "@/lib/earthwork/calc";
+import {
+  abstractRows,
+  centerLineRows,
+  centerLineCompare,
+  validateSections,
+  projectStats,
+  fmt,
+} from "@/lib/earthwork/calc";
 import type { Project } from "@/lib/earthwork/types";
 
 export const Route = createFileRoute("/analysis")({
