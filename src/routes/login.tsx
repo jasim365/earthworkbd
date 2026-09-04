@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export const Route = createFileRoute("/login")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Sign in | Earthwork Estimation Pro" },
@@ -33,10 +34,26 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+/** Reads Supabase verification info from the URL hash / query string. */
+function readVerificationParams() {
+  if (typeof window === "undefined") return null;
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const query = new URLSearchParams(window.location.search);
+  const get = (k: string) => hash.get(k) ?? query.get(k);
+  const type = get("type");
+  const error = get("error_description") ?? get("error");
+  const hasToken = Boolean(get("access_token") || get("token_hash") || get("code"));
+  if (!type && !error && !hasToken) return null;
+  return { type, error, hasToken };
+}
+
 function LoginPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [checkInbox, setCheckInbox] = useState<string | null>(null);
+  const [verifyState, setVerifyState] = useState<
+    { status: "verifying" | "verified" | "error"; message: string } | null
+  >(null);
 
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
@@ -45,16 +62,70 @@ function LoginPage() {
   const [signUpPassword, setSignUpPassword] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+    const params = readVerificationParams();
+
+    if (params?.error) {
+      setVerifyState({
+        status: "error",
+        message:
+          "The verification link is invalid or has expired. Request a new one by signing up again.",
+      });
+    } else if (params?.hasToken || params?.type) {
+      setVerifyState({
+        status: "verifying",
+        message: "Confirming your email verification…",
+      });
+    }
+
+    const goToApp = (verified: boolean) => {
+      if (cancelled) return;
+      if (verified) {
+        setVerifyState({
+          status: "verified",
+          message: "Email verified. Signing you in…",
+        });
+        toast.success("Email verified — signing you in");
+      }
+      // Clean the auth fragment out of the URL before navigating.
+      if (typeof window !== "undefined" && (window.location.hash || window.location.search)) {
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+      navigate({ to: "/", replace: true });
+    };
+
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/", replace: true });
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
-        navigate({ to: "/", replace: true });
+      if (cancelled) return;
+      if (data.session) {
+        goToApp(Boolean(params?.hasToken || params?.type));
+      } else if (params && !params.error) {
+        // Token present but no session yet — wait briefly for Supabase to process it.
+        window.setTimeout(async () => {
+          if (cancelled) return;
+          const { data: retry } = await supabase.auth.getSession();
+          if (cancelled) return;
+          if (retry.session) goToApp(true);
+          else
+            setVerifyState({
+              status: "error",
+              message:
+                "We could not complete the verification automatically. Please sign in with your email and password below.",
+            });
+        }, 1500);
       }
     });
-    return () => sub.subscription.unsubscribe();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
+        goToApp(Boolean(params?.hasToken || params?.type));
+      }
+    });
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, [navigate]);
+
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
