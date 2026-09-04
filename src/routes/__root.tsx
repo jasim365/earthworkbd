@@ -11,10 +11,9 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
-import { AppSidebar } from "@/components/app-sidebar";
-import { ProjectSwitcher } from "@/components/project-switcher";
+import { supabase } from "@/integrations/supabase/client";
+
 
 
 function NotFoundComponent() {
