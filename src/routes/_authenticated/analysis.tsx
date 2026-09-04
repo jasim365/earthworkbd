@@ -40,7 +40,7 @@ import {
 } from "@/lib/earthwork/calc";
 import type { Project } from "@/lib/earthwork/types";
 
-export const Route = createFileRoute("/analysis")({
+export const Route = createFileRoute("/_authenticated/analysis")({
   head: () => ({
     meta: [
       { title: "Analysis Engine | Earthwork Estimation Pro" },

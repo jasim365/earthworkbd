@@ -28,7 +28,7 @@ import type {
   WorkType,
 } from "@/lib/earthwork/types";
 
-export const Route = createFileRoute("/design")({
+export const Route = createFileRoute("/_authenticated/design")({
   head: () => ({
     meta: [
       { title: "Design Section | BWDB Earthwork Estimator" },

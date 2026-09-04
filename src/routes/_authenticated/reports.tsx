@@ -30,7 +30,7 @@ import { NoProject } from "@/components/no-project";
 import { useActiveProject } from "@/lib/earthwork/store";
 import { computeVolumes, projectStats, abstractRows, fmt } from "@/lib/earthwork/calc";
 
-export const Route = createFileRoute("/reports")({
+export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({
     meta: [
       { title: "Estimate Reports | Earthwork Estimation Pro" },

@@ -29,7 +29,7 @@ import { useActiveProject } from "@/lib/earthwork/store";
 import { designProfile, sectionAreas, interpAt, resolvedCenterLine, fmt } from "@/lib/earthwork/calc";
 import { rgbToHex } from "@/lib/earthwork/types";
 
-export const Route = createFileRoute("/visualization")({
+export const Route = createFileRoute("/_authenticated/visualization")({
   head: () => ({
     meta: [
       { title: "Cross-Section Charts | BWDB Earthwork Estimator" },
