@@ -9,149 +9,150 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AnalysisRouteImport } from './routes/analysis'
-import { Route as DesignRouteImport } from './routes/design'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as SectionsRouteImport } from './routes/sections'
-import { Route as VisualizationRouteImport } from './routes/visualization'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedAnalysisRouteImport } from './routes/_authenticated/analysis'
+import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated/design'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
+import { Route as AuthenticatedSectionsRouteImport } from './routes/_authenticated/sections'
+import { Route as AuthenticatedVisualizationRouteImport } from './routes/_authenticated/visualization'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/_authenticated/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AnalysisRoute = AnalysisRouteImport.update({
-  id: '/analysis',
+const AuthenticatedAnalysisRoute = AuthenticatedAnalysisRouteImport.update({
+  id: '/_authenticated/analysis',
   path: '/analysis',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DesignRoute = DesignRouteImport.update({
-  id: '/design',
+const AuthenticatedDesignRoute = AuthenticatedDesignRouteImport.update({
+  id: '/_authenticated/design',
   path: '/design',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/_authenticated/reports',
   path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SectionsRoute = SectionsRouteImport.update({
-  id: '/sections',
+const AuthenticatedSectionsRoute = AuthenticatedSectionsRouteImport.update({
+  id: '/_authenticated/sections',
   path: '/sections',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VisualizationRoute = VisualizationRouteImport.update({
-  id: '/visualization',
-  path: '/visualization',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const AuthenticatedVisualizationRoute =
+  AuthenticatedVisualizationRouteImport.update({
+    id: '/_authenticated/visualization',
+    path: '/visualization',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/analysis': typeof AnalysisRoute
-  '/design': typeof DesignRoute
-  '/reports': typeof ReportsRoute
-  '/sections': typeof SectionsRoute
-  '/visualization': typeof VisualizationRoute
+  '/analysis': typeof AuthenticatedAnalysisRoute
+  '/design': typeof AuthenticatedDesignRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/sections': typeof AuthenticatedSectionsRoute
+  '/visualization': typeof AuthenticatedVisualizationRoute
+  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/analysis': typeof AnalysisRoute
-  '/design': typeof DesignRoute
-  '/reports': typeof ReportsRoute
-  '/sections': typeof SectionsRoute
-  '/visualization': typeof VisualizationRoute
+  '/analysis': typeof AuthenticatedAnalysisRoute
+  '/design': typeof AuthenticatedDesignRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/sections': typeof AuthenticatedSectionsRoute
+  '/visualization': typeof AuthenticatedVisualizationRoute
+  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/analysis': typeof AnalysisRoute
-  '/design': typeof DesignRoute
-  '/reports': typeof ReportsRoute
-  '/sections': typeof SectionsRoute
-  '/visualization': typeof VisualizationRoute
+  '/_authenticated/analysis': typeof AuthenticatedAnalysisRoute
+  '/_authenticated/design': typeof AuthenticatedDesignRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_authenticated/sections': typeof AuthenticatedSectionsRoute
+  '/_authenticated/visualization': typeof AuthenticatedVisualizationRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/analysis' | '/design' | '/reports' | '/sections' | '/visualization'
+    '/analysis' | '/design' | '/reports' | '/sections' | '/visualization' | '/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/analysis' | '/design' | '/reports' | '/sections' | '/visualization'
+    '/analysis' | '/design' | '/reports' | '/sections' | '/visualization' | '/'
   id:
     | '__root__'
-    | '/'
-    | '/analysis'
-    | '/design'
-    | '/reports'
-    | '/sections'
-    | '/visualization'
+    | '/_authenticated/analysis'
+    | '/_authenticated/design'
+    | '/_authenticated/reports'
+    | '/_authenticated/sections'
+    | '/_authenticated/visualization'
+    | '/_authenticated/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AnalysisRoute: typeof AnalysisRoute
-  DesignRoute: typeof DesignRoute
-  ReportsRoute: typeof ReportsRoute
-  SectionsRoute: typeof SectionsRoute
-  VisualizationRoute: typeof VisualizationRoute
+  AuthenticatedAnalysisRoute: typeof AuthenticatedAnalysisRoute
+  AuthenticatedDesignRoute: typeof AuthenticatedDesignRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
+  AuthenticatedSectionsRoute: typeof AuthenticatedSectionsRoute
+  AuthenticatedVisualizationRoute: typeof AuthenticatedVisualizationRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/analysis': {
-      id: '/analysis'
+    '/_authenticated/analysis': {
+      id: '/_authenticated/analysis'
       path: '/analysis'
       fullPath: '/analysis'
-      preLoaderRoute: typeof AnalysisRouteImport
+      preLoaderRoute: typeof AuthenticatedAnalysisRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/design': {
-      id: '/design'
+    '/_authenticated/design': {
+      id: '/_authenticated/design'
       path: '/design'
       fullPath: '/design'
-      preLoaderRoute: typeof DesignRouteImport
+      preLoaderRoute: typeof AuthenticatedDesignRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reports': {
-      id: '/reports'
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
       path: '/reports'
       fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sections': {
-      id: '/sections'
+    '/_authenticated/sections': {
+      id: '/_authenticated/sections'
       path: '/sections'
       fullPath: '/sections'
-      preLoaderRoute: typeof SectionsRouteImport
+      preLoaderRoute: typeof AuthenticatedSectionsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/visualization': {
-      id: '/visualization'
+    '/_authenticated/visualization': {
+      id: '/_authenticated/visualization'
       path: '/visualization'
       fullPath: '/visualization'
-      preLoaderRoute: typeof VisualizationRouteImport
+      preLoaderRoute: typeof AuthenticatedVisualizationRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AnalysisRoute: AnalysisRoute,
-  DesignRoute: DesignRoute,
-  ReportsRoute: ReportsRoute,
-  SectionsRoute: SectionsRoute,
-  VisualizationRoute: VisualizationRoute,
+  AuthenticatedAnalysisRoute: AuthenticatedAnalysisRoute,
+  AuthenticatedDesignRoute: AuthenticatedDesignRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
+  AuthenticatedSectionsRoute: AuthenticatedSectionsRoute,
+  AuthenticatedVisualizationRoute: AuthenticatedVisualizationRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
