@@ -21,7 +21,7 @@ import { StatCard } from "@/components/stat-card";
 import { useProjects, createProject, deleteProject, setActiveProject } from "@/lib/earthwork/store";
 import { projectStats, fmt } from "@/lib/earthwork/calc";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "Dashboard | Earthwork Estimation Pro" },

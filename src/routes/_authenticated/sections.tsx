@@ -34,7 +34,7 @@ import {
 
 
 
-export const Route = createFileRoute("/sections")({
+export const Route = createFileRoute("/_authenticated/sections")({
   head: () => ({
     meta: [
       { title: "Sectional Data | Earthwork Estimation Pro" },
