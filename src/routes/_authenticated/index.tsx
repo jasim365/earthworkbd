@@ -179,7 +179,7 @@ function Dashboard() {
                     <MapPin className="size-3" /> {p.location}
                   </p>
                 </div>
-                <Badge variant="secondary">Re-sectioning</Badge>
+                <Badge variant="secondary">{WORK_TYPE_LABEL[p.config.workType]}</Badge>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-3 gap-3 text-sm">
