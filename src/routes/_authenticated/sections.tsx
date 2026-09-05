@@ -38,7 +38,7 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { NoProject } from "@/components/no-project";
 import { useActiveProject, updateProject, newSection, newPoint } from "@/lib/earthwork/store";
-import type { Project, SectionData } from "@/lib/earthwork/types";
+import type { Project, SectionData, SurveyPoint } from "@/lib/earthwork/types";
 import { designProfile, sectionArea, fmt } from "@/lib/earthwork/calc";
 import { parseSurveyCsv, mergeSections, SURVEY_CSV_TEMPLATE } from "@/lib/earthwork/csv";
 import { parseChartDatasetsWorkbook, type ImportIssue } from "@/lib/earthwork/xlsx-import";
@@ -591,5 +591,190 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
         })}
       </div>
     </div>
+  );
+}
+
+/** Copy text to the clipboard with a graceful fallback for older browsers. */
+async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard — paste straight into Excel");
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    if (ok) toast.success("Copied to clipboard");
+    else toast.error("Could not access the clipboard");
+  }
+}
+
+/** Parse pasted Excel cells with two columns: distance (offset) and RL. */
+function parsePointPairs(text: string): { points: SurveyPoint[]; errors: string[] } {
+  const errors: string[] = [];
+  const points: SurveyPoint[] = [];
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  lines.forEach((line, i) => {
+    const cols = line.split(/[,;\t]+/).map((c) => c.trim().replace(/^"|"$/g, ""));
+    if (cols.length < 2) {
+      errors.push(`Line ${i + 1}: expected 2 columns (distance, RL)`);
+      return;
+    }
+    const d = Number(cols[0]);
+    const r = Number(cols[1]);
+    if (!Number.isFinite(d) || !Number.isFinite(r)) {
+      if (i > 0 || points.length > 0) errors.push(`Line ${i + 1}: values are not numbers`);
+      return; // header row or malformed
+    }
+    points.push({ ...newPoint(d, r) });
+  });
+
+  return { points, errors };
+}
+
+function PastePointsDialog({
+  chainage,
+  unit,
+  onApply,
+}: {
+  chainage: number;
+  unit: string;
+  onApply: (text: string, mode: "replace" | "append") => boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [mode, setMode] = useState<"replace" | "append">("replace");
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) setText("");
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" aria-label="Paste offset and RL" title="Paste offset & RL">
+          <ClipboardPaste className="size-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            Paste offset & RL — CH {chainage} {unit}
+          </DialogTitle>
+          <DialogDescription>
+            Copy two columns in Excel (distance/offset in m, RL in m) and paste them below. A header
+            row is ignored.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Textarea
+            rows={10}
+            className="font-mono text-xs"
+            placeholder={"0\t12.40\n5\t11.85\n10\t11.20"}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <div className="flex gap-4 text-sm">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                checked={mode === "replace"}
+                onChange={() => setMode("replace")}
+              />
+              Replace existing points
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" checked={mode === "append"} onChange={() => setMode("append")} />
+              Add to existing points
+            </label>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            disabled={!text.trim()}
+            onClick={() => {
+              if (onApply(text, mode)) {
+                setText("");
+                setOpen(false);
+              }
+            }}
+          >
+            Paste
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PasteSurveyDialog({
+  kind,
+  unit,
+  onApply,
+}: {
+  kind: "pre" | "post";
+  unit: string;
+  onApply: (text: string) => boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) setText("");
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          <ClipboardPaste className="size-4" /> Paste from Excel
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Paste {kind === "pre" ? "pre-work" : "post-work"} survey</DialogTitle>
+          <DialogDescription>
+            Copy three columns in Excel — chainage ({unit}), distance/offset (m) and RL (m) — then
+            paste them here. A header row is ignored.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Label htmlFor={`paste-${kind}`}>Excel cells</Label>
+          <Textarea
+            id={`paste-${kind}`}
+            rows={10}
+            className="font-mono text-xs"
+            placeholder={"0.000\t0\t12.40\n0.000\t5\t11.85\n0.050\t0\t12.30"}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+        </div>
+        <DialogFooter>
+          <Button
+            disabled={!text.trim()}
+            onClick={() => {
+              if (onApply(text)) {
+                setText("");
+                setOpen(false);
+              }
+            }}
+          >
+            Paste
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
