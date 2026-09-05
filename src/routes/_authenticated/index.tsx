@@ -200,6 +200,7 @@ function Dashboard() {
                       Open <ArrowRight className="size-4" />
                     </Link>
                   </Button>
+                  <EditProjectDialog project={p} />
                   <Button
                     size="sm"
                     variant="ghost"
