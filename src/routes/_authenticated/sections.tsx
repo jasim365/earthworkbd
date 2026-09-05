@@ -425,6 +425,52 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
                   <Button
                     size="icon"
                     variant="ghost"
+                    aria-label="Copy offset and RL"
+                    title="Copy offset & RL"
+                    onClick={() => {
+                      if (s.points.length === 0) {
+                        toast.error("This section has no points to copy");
+                        return;
+                      }
+                      void copyText(
+                        `Distance\tRL\n` +
+                          s.points.map((p) => `${p.distance}\t${p.rl}`).join("\n"),
+                      );
+                    }}
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                  <PastePointsDialog
+                    chainage={s.chainage}
+                    unit={unit}
+                    onApply={(text, mode) => {
+                      const { points, errors } = parsePointPairs(text);
+                      if (points.length === 0) {
+                        toast.error("Nothing to paste", {
+                          description:
+                            errors[0] ?? "Expected two columns: distance (offset) and RL",
+                        });
+                        return false;
+                      }
+                      write(
+                        sections.map((x) =>
+                          x.id === s.id
+                            ? {
+                                ...x,
+                                points: mode === "replace" ? points : [...x.points, ...points],
+                              }
+                            : x,
+                        ),
+                      );
+                      toast.success(`Pasted ${points.length} points at CH ${s.chainage} ${unit}`, {
+                        description: errors.length ? `${errors.length} row(s) skipped` : undefined,
+                      });
+                      return true;
+                    }}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
                     aria-label="Delete section"
                     onClick={() => write(sections.filter((x) => x.id !== s.id))}
                   >
