@@ -265,6 +265,39 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
         <Button variant="outline" onClick={() => xlsxRef.current?.click()}>
           <FileSpreadsheet className="size-4" /> Import Excel
         </Button>
+        <PasteSurveyDialog
+          kind={kind}
+          unit={unit}
+          onApply={(text) => {
+            const { sections: imported, rows, errors } = parseSurveyCsv(text);
+            if (imported.length === 0) {
+              toast.error("Nothing to paste", {
+                description: errors[0] ?? "Expected three columns: chainage, distance, RL",
+              });
+              return false;
+            }
+            write(mergeSections(sections, imported));
+            toast.success(`Pasted ${rows} points across ${imported.length} chainages`, {
+              description: errors.length ? `${errors.length} row(s) skipped` : undefined,
+            });
+            return true;
+          }}
+        />
+        <Button
+          variant="ghost"
+          onClick={() => {
+            const tsv = sections
+              .flatMap((s) => s.points.map((p) => `${s.chainage}\t${p.distance}\t${p.rl}`))
+              .join("\n");
+            if (!tsv) {
+              toast.error("No survey data to copy");
+              return;
+            }
+            void copyText(`Chainage\tDistance\tRL\n${tsv}`);
+          }}
+        >
+          <Copy className="size-4" /> Copy all
+        </Button>
         <Button variant="ghost" onClick={downloadTemplate}>
           <Download className="size-4" /> Template
         </Button>
