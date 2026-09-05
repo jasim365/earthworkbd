@@ -124,15 +124,31 @@ function Dashboard() {
                     placeholder="District / Reach"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Type of work</Label>
+                  <Select value={workType} onValueChange={(v) => setWorkType(v as WorkType)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CANAL_EXCAVATION">Canal Excavation</SelectItem>
+                      <SelectItem value="EMBANKMENT_RESECTIONING">
+                        Embankment Re-sectioning
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <DialogFooter>
                 <Button
                   disabled={!name.trim()}
                   onClick={() => {
                     const p = createProject(name.trim(), location.trim() || "—");
+                    updateProject(p.id, { config: { ...p.config, workType } });
                     setActiveProject(p.id);
                     setName("");
                     setLocation("");
+                    setWorkType("EMBANKMENT_RESECTIONING");
                     setOpen(false);
                   }}
                 >
