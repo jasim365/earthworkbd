@@ -74,6 +74,7 @@ function Dashboard() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
+  const [workType, setWorkType] = useState<WorkType>("EMBANKMENT_RESECTIONING");
 
   const totals = projects.reduce(
     (acc, p) => {
