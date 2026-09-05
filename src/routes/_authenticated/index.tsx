@@ -234,3 +234,80 @@ function Field({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+function EditProjectDialog({ project }: { project: Project }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(project.name);
+  const [location, setLocation] = useState(project.location);
+  const [workType, setWorkType] = useState<WorkType>(project.config.workType);
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (o) {
+          setName(project.name);
+          setLocation(project.location);
+          setWorkType(project.config.workType);
+        }
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" aria-label="Edit project">
+          <Pencil className="size-4" /> Edit
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit project</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor={`ename-${project.id}`}>Project name</Label>
+            <Input
+              id={`ename-${project.id}`}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`eloc-${project.id}`}>Location</Label>
+            <Input
+              id={`eloc-${project.id}`}
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Type of work</Label>
+            <Select value={workType} onValueChange={(v) => setWorkType(v as WorkType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CANAL_EXCAVATION">Canal Excavation</SelectItem>
+                <SelectItem value="EMBANKMENT_RESECTIONING">Embankment Re-sectioning</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            disabled={!name.trim()}
+            onClick={() => {
+              updateProject(project.id, {
+                name: name.trim(),
+                location: location.trim() || "—",
+                config: { ...project.config, workType },
+              });
+              setOpen(false);
+            }}
+          >
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
