@@ -26,10 +26,29 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
-import { useProjects, createProject, deleteProject, setActiveProject } from "@/lib/earthwork/store";
+import {
+  useProjects,
+  createProject,
+  deleteProject,
+  setActiveProject,
+  updateProject,
+} from "@/lib/earthwork/store";
 import { projectStats, fmt } from "@/lib/earthwork/calc";
+import type { Project, WorkType } from "@/lib/earthwork/types";
+
+const WORK_TYPE_LABEL: Record<WorkType, string> = {
+  CANAL_EXCAVATION: "Canal Excavation",
+  EMBANKMENT_RESECTIONING: "Re-sectioning",
+};
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
