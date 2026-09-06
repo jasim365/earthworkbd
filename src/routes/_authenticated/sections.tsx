@@ -98,6 +98,20 @@ function SectionsPage() {
   );
 }
 
+/** Sorts chainages and offsets and drops unusable rows so downstream
+ *  gap handling, mean-area volumes and charts recalculate correctly. */
+function normaliseSections(list: SectionData[]): SectionData[] {
+  return [...list]
+    .filter((s) => Number.isFinite(s.chainage))
+    .sort((a, b) => a.chainage - b.chainage)
+    .map((s) => ({
+      ...s,
+      points: [...s.points]
+        .filter((p) => Number.isFinite(p.distance) && Number.isFinite(p.rl))
+        .sort((a, b) => a.distance - b.distance),
+    }));
+}
+
 function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "post" }) {
   const sections = project[kind];
   const unit = project.config.chainageUnit;
@@ -144,8 +158,8 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
       const simple = await parseSurveySheetsWorkbook(file);
       if (simple && (simple.pre.length || simple.post.length)) {
         const patch: Partial<Project> = {};
-        if (simple.pre.length) patch.pre = mergeSections(project.pre, simple.pre);
-        if (simple.post.length) patch.post = mergeSections(project.post, simple.post);
+        if (simple.pre.length) patch.pre = normaliseSections(mergeSections(project.pre, simple.pre);
+        if (simple.post.length) patch.post = normaliseSections(mergeSections(project.post, simple.post);
         updateProject(project.id, patch);
         setIssues(
           simple.errors.map((message) => ({ severity: "warning" as const, where: file.name, message })),
@@ -181,8 +195,8 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
     }
 
     const patch: Partial<Project> = {};
-    if (res.pre.length) patch.pre = mergeSections(project.pre, res.pre);
-    if (res.post.length) patch.post = mergeSections(project.post, res.post);
+    if (res.pre.length) patch.pre = normaliseSections(mergeSections(project.pre, res.pre);
+    if (res.post.length) patch.post = normaliseSections(mergeSections(project.post, res.post);
     updateProject(project.id, patch);
     toast.success(`Imported ${res.points} points — charts and volumes recalculated`, {
       description:
