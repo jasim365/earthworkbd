@@ -47,9 +47,40 @@ function readVerificationParams() {
   return { type, error, hasToken };
 }
 
+/** Turns raw auth errors into plain, actionable messages. */
+function describeAuthError(raw: string, context: "signin" | "signup" | "google"): string {
+  const m = (raw || "").toLowerCase();
+  if (m.includes("invalid login credentials") || m.includes("invalid_grant"))
+    return "That email and password don't match. Check them and try again, or reset your password.";
+  if (m.includes("email not confirmed"))
+    return "Your email isn't verified yet. Open the confirmation link we emailed you, then sign in.";
+  if (m.includes("user already registered") || m.includes("already been registered"))
+    return "An account with this email already exists. Try signing in instead.";
+  if (m.includes("password") && (m.includes("short") || m.includes("at least")))
+    return "Your password is too short — use at least 6 characters.";
+  if (m.includes("pwned") || m.includes("compromised"))
+    return "That password has appeared in a data breach. Please choose a different one.";
+  if (m.includes("rate limit") || m.includes("too many"))
+    return "Too many attempts. Please wait a minute and try again.";
+  if (m.includes("invalid email") || m.includes("unable to validate email"))
+    return "That email address doesn't look valid.";
+  if (m.includes("popup") || m.includes("closed") || m.includes("cancel"))
+    return "Google sign-in was cancelled before it finished. Try again.";
+  if (m.includes("unsupported provider") || m.includes("provider is not enabled"))
+    return "Google sign-in isn't available right now. Please use your email and password.";
+  if (m.includes("network") || m.includes("fetch"))
+    return "We couldn't reach the server. Check your internet connection and try again.";
+  if (context === "google")
+    return raw
+      ? `Google sign-in failed: ${raw}`
+      : "Google sign-in failed. Please try again, or use your email and password.";
+  return raw || (context === "signup" ? "We couldn't create your account." : "We couldn't sign you in.");
+}
+
 function LoginPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [checkInbox, setCheckInbox] = useState<string | null>(null);
   const [verifyState, setVerifyState] = useState<
     { status: "verifying" | "verified" | "error"; message: string } | null
