@@ -129,6 +129,7 @@ function LoginPage() {
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
+    setFormError(null);
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: signInEmail.trim(),
@@ -136,7 +137,9 @@ function LoginPage() {
     });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      const message = describeAuthError(error.message, "signin");
+      setFormError(message);
+      toast.error(message);
       return;
     }
     toast.success("Signed in");
@@ -145,6 +148,7 @@ function LoginPage() {
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
+    setFormError(null);
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email: signUpEmail.trim(),
@@ -156,7 +160,9 @@ function LoginPage() {
     });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      const message = describeAuthError(error.message, "signup");
+      setFormError(message);
+      toast.error(message);
       return;
     }
     if (!data.session) {
@@ -166,13 +172,29 @@ function LoginPage() {
   }
 
   async function handleGoogle() {
+    setFormError(null);
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
+    let result: Awaited<ReturnType<typeof lovable.auth.signInWithOAuth>>;
+    try {
+      result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+    } catch {
+      setLoading(false);
+      const message =
+        "We couldn't reach Google. Check your internet connection and try again, or sign in with your email and password.";
+      setFormError(message);
+      toast.error(message);
+      return;
+    }
     if (result.error) {
       setLoading(false);
-      toast.error("Google sign-in failed. Please try again.");
+      const message = describeAuthError(
+        typeof result.error === "string" ? result.error : ((result.error as { message?: string })?.message ?? ""),
+        "google",
+      );
+      setFormError(message);
+      toast.error(message);
       return;
     }
     if (result.redirected) return;
