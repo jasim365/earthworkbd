@@ -107,7 +107,20 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
   const xlsxRef = useRef<HTMLInputElement>(null);
 
 
-  const write = (next: SectionData[]) => updateProject(project.id, { [kind]: next } as Partial<Project>);
+  // Normalise on every write so gap handling, mean-area volumes and the charts
+  // recalculate immediately from freshly pasted/imported data.
+  const write = (next: SectionData[]) => {
+    const normalised = [...next]
+      .filter((s) => Number.isFinite(s.chainage))
+      .sort((a, b) => a.chainage - b.chainage)
+      .map((s) => ({
+        ...s,
+        points: [...s.points]
+          .filter((p) => Number.isFinite(p.distance) && Number.isFinite(p.rl))
+          .sort((a, b) => a.distance - b.distance),
+      }));
+    updateProject(project.id, { [kind]: normalised } as Partial<Project>);
+  };
 
   const addSection = () => {
     const ch = Number(nextCh);
