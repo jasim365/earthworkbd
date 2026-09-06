@@ -257,6 +257,15 @@ function LoginPage() {
           </Alert>
         ) : null}
 
+        {formError ? (
+          <Alert className="mb-4" variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Sign-in problem</AlertTitle>
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        ) : null}
+
+
         {verifyState ? (
           <Alert className="mb-4" variant={verifyState.status === "error" ? "destructive" : "default"}>
             {verifyState.status === "verifying" ? (
