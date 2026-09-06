@@ -111,19 +111,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
 
   // Used after paste/import: sorts chainages and offsets and drops unusable rows
   // so gap handling, mean-area volumes and the charts recalculate immediately.
-  const writeImported = (next: SectionData[]) => {
-    write(
-      [...next]
-        .filter((s) => Number.isFinite(s.chainage))
-        .sort((a, b) => a.chainage - b.chainage)
-        .map((s) => ({
-          ...s,
-          points: [...s.points]
-            .filter((p) => Number.isFinite(p.distance) && Number.isFinite(p.rl))
-            .sort((a, b) => a.distance - b.distance),
-        })),
-    );
-  };
+  const writeImported = (next: SectionData[]) => write(normaliseSections(next));
 
   const addSection = () => {
     const ch = Number(nextCh);
