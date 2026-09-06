@@ -98,6 +98,20 @@ function SectionsPage() {
   );
 }
 
+/** Sorts chainages and offsets and drops unusable rows so downstream
+ *  gap handling, mean-area volumes and charts recalculate correctly. */
+function normaliseSections(list: SectionData[]): SectionData[] {
+  return [...list]
+    .filter((s) => Number.isFinite(s.chainage))
+    .sort((a, b) => a.chainage - b.chainage)
+    .map((s) => ({
+      ...s,
+      points: [...s.points]
+        .filter((p) => Number.isFinite(p.distance) && Number.isFinite(p.rl))
+        .sort((a, b) => a.distance - b.distance),
+    }));
+}
+
 function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "post" }) {
   const sections = project[kind];
   const unit = project.config.chainageUnit;
@@ -108,6 +122,10 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
 
 
   const write = (next: SectionData[]) => updateProject(project.id, { [kind]: next } as Partial<Project>);
+
+  // Used after paste/import: sorts chainages and offsets and drops unusable rows
+  // so gap handling, mean-area volumes and the charts recalculate immediately.
+  const writeImported = (next: SectionData[]) => write(normaliseSections(next));
 
   const addSection = () => {
     const ch = Number(nextCh);
@@ -126,7 +144,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
       toast.error("No valid rows found", { description: errors[0] });
       return;
     }
-    write(mergeSections(sections, imported));
+    writeImported(mergeSections(sections, imported));
     toast.success(`Imported ${rows} points across ${imported.length} chainages`, {
       description: errors.length ? `${errors.length} row(s) skipped` : undefined,
     });
@@ -140,8 +158,8 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
       const simple = await parseSurveySheetsWorkbook(file);
       if (simple && (simple.pre.length || simple.post.length)) {
         const patch: Partial<Project> = {};
-        if (simple.pre.length) patch.pre = mergeSections(project.pre, simple.pre);
-        if (simple.post.length) patch.post = mergeSections(project.post, simple.post);
+        if (simple.pre.length) patch.pre = normaliseSections(mergeSections(project.pre, simple.pre));
+        if (simple.post.length) patch.post = normaliseSections(mergeSections(project.post, simple.post));
         updateProject(project.id, patch);
         setIssues(
           simple.errors.map((message) => ({ severity: "warning" as const, where: file.name, message })),
@@ -177,8 +195,8 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
     }
 
     const patch: Partial<Project> = {};
-    if (res.pre.length) patch.pre = mergeSections(project.pre, res.pre);
-    if (res.post.length) patch.post = mergeSections(project.post, res.post);
+    if (res.pre.length) patch.pre = normaliseSections(mergeSections(project.pre, res.pre));
+    if (res.post.length) patch.post = normaliseSections(mergeSections(project.post, res.post));
     updateProject(project.id, patch);
     toast.success(`Imported ${res.points} points — charts and volumes recalculated`, {
       description:
@@ -276,7 +294,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
               });
               return false;
             }
-            write(mergeSections(sections, imported));
+            writeImported(mergeSections(sections, imported));
             toast.success(`Pasted ${rows} points across ${imported.length} chainages`, {
               description: errors.length ? `${errors.length} row(s) skipped` : undefined,
             });
@@ -452,7 +470,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
                         });
                         return false;
                       }
-                      write(
+                      writeImported(
                         sections.map((x) =>
                           x.id === s.id
                             ? {

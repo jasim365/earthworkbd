@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, MailCheck } from "lucide-react";
+import { AlertTriangle, Loader2, MailCheck } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -47,9 +47,40 @@ function readVerificationParams() {
   return { type, error, hasToken };
 }
 
+/** Turns raw auth errors into plain, actionable messages. */
+function describeAuthError(raw: string, context: "signin" | "signup" | "google"): string {
+  const m = (raw || "").toLowerCase();
+  if (m.includes("invalid login credentials") || m.includes("invalid_grant"))
+    return "That email and password don't match. Check them and try again, or reset your password.";
+  if (m.includes("email not confirmed"))
+    return "Your email isn't verified yet. Open the confirmation link we emailed you, then sign in.";
+  if (m.includes("user already registered") || m.includes("already been registered"))
+    return "An account with this email already exists. Try signing in instead.";
+  if (m.includes("password") && (m.includes("short") || m.includes("at least")))
+    return "Your password is too short — use at least 6 characters.";
+  if (m.includes("pwned") || m.includes("compromised"))
+    return "That password has appeared in a data breach. Please choose a different one.";
+  if (m.includes("rate limit") || m.includes("too many"))
+    return "Too many attempts. Please wait a minute and try again.";
+  if (m.includes("invalid email") || m.includes("unable to validate email"))
+    return "That email address doesn't look valid.";
+  if (m.includes("popup") || m.includes("closed") || m.includes("cancel"))
+    return "Google sign-in was cancelled before it finished. Try again.";
+  if (m.includes("unsupported provider") || m.includes("provider is not enabled"))
+    return "Google sign-in isn't available right now. Please use your email and password.";
+  if (m.includes("network") || m.includes("fetch"))
+    return "We couldn't reach the server. Check your internet connection and try again.";
+  if (context === "google")
+    return raw
+      ? `Google sign-in failed: ${raw}`
+      : "Google sign-in failed. Please try again, or use your email and password.";
+  return raw || (context === "signup" ? "We couldn't create your account." : "We couldn't sign you in.");
+}
+
 function LoginPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [checkInbox, setCheckInbox] = useState<string | null>(null);
   const [verifyState, setVerifyState] = useState<
     { status: "verifying" | "verified" | "error"; message: string } | null
@@ -129,6 +160,7 @@ function LoginPage() {
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
+    setFormError(null);
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: signInEmail.trim(),
@@ -136,7 +168,9 @@ function LoginPage() {
     });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      const message = describeAuthError(error.message, "signin");
+      setFormError(message);
+      toast.error(message);
       return;
     }
     toast.success("Signed in");
@@ -145,6 +179,7 @@ function LoginPage() {
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
+    setFormError(null);
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email: signUpEmail.trim(),
@@ -156,7 +191,9 @@ function LoginPage() {
     });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      const message = describeAuthError(error.message, "signup");
+      setFormError(message);
+      toast.error(message);
       return;
     }
     if (!data.session) {
@@ -166,13 +203,31 @@ function LoginPage() {
   }
 
   async function handleGoogle() {
+    setFormError(null);
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
+    let result: Awaited<ReturnType<typeof lovable.auth.signInWithOAuth>>;
+    try {
+      result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+    } catch {
       setLoading(false);
-      toast.error("Google sign-in failed. Please try again.");
+      const message =
+        "We couldn't reach Google. Check your internet connection and try again, or sign in with your email and password.";
+      setFormError(message);
+      toast.error(message);
+      return;
+    }
+    const oauthError: unknown = result.error;
+    if (oauthError) {
+      setLoading(false);
+      const raw =
+        typeof oauthError === "string"
+          ? oauthError
+          : ((oauthError as { message?: string })?.message ?? "");
+      const message = describeAuthError(raw, "google");
+      setFormError(message);
+      toast.error(message);
       return;
     }
     if (result.redirected) return;
@@ -201,6 +256,15 @@ function LoginPage() {
             </AlertDescription>
           </Alert>
         ) : null}
+
+        {formError ? (
+          <Alert className="mb-4" variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Sign-in problem</AlertTitle>
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        ) : null}
+
 
         {verifyState ? (
           <Alert className="mb-4" variant={verifyState.status === "error" ? "destructive" : "default"}>
