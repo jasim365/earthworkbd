@@ -158,8 +158,8 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
       const simple = await parseSurveySheetsWorkbook(file);
       if (simple && (simple.pre.length || simple.post.length)) {
         const patch: Partial<Project> = {};
-        if (simple.pre.length) patch.pre = normaliseSections(mergeSections(project.pre, simple.pre);
-        if (simple.post.length) patch.post = normaliseSections(mergeSections(project.post, simple.post);
+        if (simple.pre.length) patch.pre = normaliseSections(mergeSections(project.pre, simple.pre));
+        if (simple.post.length) patch.post = normaliseSections(mergeSections(project.post, simple.post));
         updateProject(project.id, patch);
         setIssues(
           simple.errors.map((message) => ({ severity: "warning" as const, where: file.name, message })),
@@ -195,8 +195,8 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
     }
 
     const patch: Partial<Project> = {};
-    if (res.pre.length) patch.pre = normaliseSections(mergeSections(project.pre, res.pre);
-    if (res.post.length) patch.post = normaliseSections(mergeSections(project.post, res.post);
+    if (res.pre.length) patch.pre = normaliseSections(mergeSections(project.pre, res.pre));
+    if (res.post.length) patch.post = normaliseSections(mergeSections(project.post, res.post));
     updateProject(project.id, patch);
     toast.success(`Imported ${res.points} points — charts and volumes recalculated`, {
       description:
