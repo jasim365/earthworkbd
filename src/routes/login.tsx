@@ -202,6 +202,24 @@ function LoginPage() {
           </Alert>
         ) : null}
 
+        {verifyState ? (
+          <Alert className="mb-4" variant={verifyState.status === "error" ? "destructive" : "default"}>
+            {verifyState.status === "verifying" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <MailCheck className="h-4 w-4" />
+            )}
+            <AlertTitle>
+              {verifyState.status === "verified"
+                ? "Email verified"
+                : verifyState.status === "verifying"
+                  ? "Verifying…"
+                  : "Verification problem"}
+            </AlertTitle>
+            <AlertDescription>{verifyState.message}</AlertDescription>
+          </Alert>
+        ) : null}
+
         <Card>
           <CardHeader>
             <CardTitle>Welcome</CardTitle>
