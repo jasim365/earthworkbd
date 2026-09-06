@@ -218,12 +218,14 @@ function LoginPage() {
       toast.error(message);
       return;
     }
-    if (result.error) {
+    const oauthError: unknown = result.error;
+    if (oauthError) {
       setLoading(false);
-      const message = describeAuthError(
-        typeof result.error === "string" ? result.error : ((result.error as { message?: string })?.message ?? ""),
-        "google",
-      );
+      const raw =
+        typeof oauthError === "string"
+          ? oauthError
+          : ((oauthError as { message?: string })?.message ?? "");
+      const message = describeAuthError(raw, "google");
       setFormError(message);
       toast.error(message);
       return;
