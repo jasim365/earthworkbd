@@ -142,7 +142,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
       toast.error("No valid rows found", { description: errors[0] });
       return;
     }
-    write(mergeSections(sections, imported));
+    writeImported(mergeSections(sections, imported));
     toast.success(`Imported ${rows} points across ${imported.length} chainages`, {
       description: errors.length ? `${errors.length} row(s) skipped` : undefined,
     });
@@ -292,7 +292,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
               });
               return false;
             }
-            write(mergeSections(sections, imported));
+            writeImported(mergeSections(sections, imported));
             toast.success(`Pasted ${rows} points across ${imported.length} chainages`, {
               description: errors.length ? `${errors.length} row(s) skipped` : undefined,
             });
@@ -468,7 +468,7 @@ function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "pos
                         });
                         return false;
                       }
-                      write(
+                      writeImported(
                         sections.map((x) =>
                           x.id === s.id
                             ? {
