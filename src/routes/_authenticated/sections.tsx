@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { NoProject } from "@/components/no-project";
+import { RecalcStatus } from "@/components/recalc-status";
 import { useActiveProject, updateProject, newSection, newPoint } from "@/lib/earthwork/store";
 import type { Project, SectionData, SurveyPoint } from "@/lib/earthwork/types";
 import { designProfile, sectionArea, fmt } from "@/lib/earthwork/calc";
@@ -82,6 +83,7 @@ function SectionsPage() {
         title="Sectional Data"
         subtitle={`${project.name} — survey points per chainage (distance & reduced level in metres).`}
       />
+      <RecalcStatus project={project} />
       <Tabs defaultValue="pre">
         <TabsList>
           <TabsTrigger value="pre">Pre-work Survey</TabsTrigger>
