@@ -39,6 +39,7 @@ import { PageHeader } from "@/components/page-header";
 import { NoProject } from "@/components/no-project";
 import { RecalcStatus } from "@/components/recalc-status";
 import { useActiveProject, updateProject, newSection, newPoint } from "@/lib/earthwork/store";
+import { useActiveProject, updateProject, newSection, newPoint } from "@/lib/earthwork/store";
 import type { Project, SectionData, SurveyPoint } from "@/lib/earthwork/types";
 import { designProfile, sectionArea, fmt } from "@/lib/earthwork/calc";
 import { parseSurveyCsv, mergeSections, SURVEY_CSV_TEMPLATE } from "@/lib/earthwork/csv";
