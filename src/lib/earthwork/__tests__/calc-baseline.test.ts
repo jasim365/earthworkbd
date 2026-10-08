@@ -1,3 +1,4 @@
+// @ts-nocheck -- bun test runtime module
 // Regression lock for the PROTECTED earthwork calculation engine (calc.ts).
 // Baseline captured from the engine before the structure/safety refactor.
 // If this fails, the calculation output changed — that requires explicit user approval.
