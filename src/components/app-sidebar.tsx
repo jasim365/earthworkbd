@@ -33,7 +33,6 @@ const groups = [
     label: "Project",
     items: [
       { title: "Dashboard", url: "/", icon: LayoutDashboard },
-      { title: "New Project", url: "/projects/new", icon: FolderPlus },
       { title: "Design Config", url: "/design", icon: Settings2 },
     ],
   },
@@ -42,24 +41,18 @@ const groups = [
     items: [
       { title: "Earthwork Calculator", url: "/analysis", icon: Calculator },
       { title: "Survey / Input Data", url: "/sections", icon: Table2 },
-      { title: "Calculation Result", url: "/results", icon: ClipboardList },
     ],
   },
   {
     label: "Drawings",
     items: [
       { title: "Cross Section", url: "/visualization", icon: LineChart },
-      { title: "Longitudinal Profile", url: "/profile", icon: TrendingUp },
     ],
   },
   {
     label: "Costing & Output",
     items: [
-      { title: "BOQ", url: "/boq", icon: ReceiptText },
-      { title: "Rate Analysis", url: "/rates", icon: BadgeDollarSign },
       { title: "Reports", url: "/reports", icon: FileText },
-      { title: "Import / Export", url: "/data", icon: ArrowDownUp },
-      { title: "Settings", url: "/settings", icon: Settings },
     ],
   },
 ] as const;
