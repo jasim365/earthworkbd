@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
+import { ProjectSummary } from "@/components/project-summary";
+import { useActiveProject } from "@/lib/earthwork/store";
 import {
   useProjects,
   createProject,
@@ -71,6 +73,7 @@ export const Route = createFileRoute("/_authenticated/")({
 
 function Dashboard() {
   const projects = useProjects();
+  const active = useActiveProject();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
@@ -166,6 +169,8 @@ function Dashboard() {
         <StatCard icon={TrendingUp} label="Avg. Progress" value={`${fmt(avgProgress, 1)}%`} />
         <StatCard icon={Wallet} label="Executed Cost" value={`৳ ${fmt(totals.cost, 0)}`} />
       </div>
+
+      {active && <ProjectSummary project={active} />}
 
       <div className="grid gap-4 lg:grid-cols-2">
         {projects.map((p) => {
