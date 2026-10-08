@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * PROTECTED EXISTING EARTHWORK CALCULATION — DO NOT MODIFY WITHOUT EXPLICIT
+ * USER APPROVAL.
+ *
+ * This module is the LOCKED calculation engine (areas, centre lines, mean-area
+ * volumes, gap handling, progress). UI, project management, import/export,
+ * visualization and reporting must call it as a black box and must never
+ * re-implement its formulas. Regression lock:
+ * src/lib/earthwork/__tests__/calc-baseline.test.ts
+ * ============================================================================
+ */
 import type {
   CenterLineMode,
   DesignConfig,
