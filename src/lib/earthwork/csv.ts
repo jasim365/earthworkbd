@@ -79,3 +79,17 @@ export const SURVEY_CSV_TEMPLATE = `chainage,distance,rl
 0.05,15,12.10
 0.05,20,13.70
 `;
+
+/** Sorts chainages and offsets and drops unusable rows so downstream
+ *  gap handling, mean-area volumes and charts recalculate correctly. */
+export function normaliseSections(list: SectionData[]): SectionData[] {
+  return [...list]
+    .filter((s) => Number.isFinite(s.chainage))
+    .sort((a, b) => a.chainage - b.chainage)
+    .map((s) => ({
+      ...s,
+      points: [...s.points]
+        .filter((p) => Number.isFinite(p.distance) && Number.isFinite(p.rl))
+        .sort((a, b) => a.distance - b.distance),
+    }));
+}
