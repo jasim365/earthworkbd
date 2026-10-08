@@ -41,7 +41,7 @@ import { RecalcStatus } from "@/components/recalc-status";
 import { useActiveProject, updateProject, newSection, newPoint } from "@/lib/earthwork/store";
 import type { Project, SectionData, SurveyPoint } from "@/lib/earthwork/types";
 import { designProfile, sectionArea, fmt } from "@/lib/earthwork/calc";
-import { parseSurveyCsv, mergeSections, SURVEY_CSV_TEMPLATE } from "@/lib/earthwork/csv";
+import { parseSurveyCsv, mergeSections, normaliseSections, SURVEY_CSV_TEMPLATE } from "@/lib/earthwork/csv";
 import { parseChartDatasetsWorkbook, type ImportIssue } from "@/lib/earthwork/xlsx-import";
 import {
   DEMO_PRE_CSV,
@@ -98,20 +98,6 @@ function SectionsPage() {
       </Tabs>
     </div>
   );
-}
-
-/** Sorts chainages and offsets and drops unusable rows so downstream
- *  gap handling, mean-area volumes and charts recalculate correctly. */
-function normaliseSections(list: SectionData[]): SectionData[] {
-  return [...list]
-    .filter((s) => Number.isFinite(s.chainage))
-    .sort((a, b) => a.chainage - b.chainage)
-    .map((s) => ({
-      ...s,
-      points: [...s.points]
-        .filter((p) => Number.isFinite(p.distance) && Number.isFinite(p.rl))
-        .sort((a, b) => a.distance - b.distance),
-    }));
 }
 
 function SectionEditor({ project, kind }: { project: Project; kind: "pre" | "post" }) {
