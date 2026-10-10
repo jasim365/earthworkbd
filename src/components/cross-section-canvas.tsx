@@ -18,10 +18,10 @@ interface Props {
   hStep?: number;
   height?: number;
   title?: string;
-  designWidth?: number;
-  designLevel?: number;
-  cutArea?: number;
-  fillArea?: number;
+  designWidth?: number | undefined;
+  designLevel?: number | undefined;
+  cutArea?: number | undefined;
+  fillArea?: number | undefined;
   colors?: { pre: RgbColor; post: RgbColor; design: RgbColor };
 }
 
