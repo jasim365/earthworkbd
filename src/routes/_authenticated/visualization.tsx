@@ -26,7 +26,7 @@ import { PageHeader } from "@/components/page-header";
 import { NoProject } from "@/components/no-project";
 import { CrossSectionCanvas } from "@/components/cross-section-canvas";
 import { useActiveProject } from "@/lib/earthwork/store";
-import { designProfile, sectionAreas, interpAt, resolvedCenterLine, fmt } from "@/lib/earthwork/calc";
+import { designProfile, designLevelAt, designWidthAt, sectionAreas, interpAt, resolvedCenterLine, fmt } from "@/lib/earthwork/calc";
 import { rgbToHex } from "@/lib/earthwork/types";
 
 export const Route = createFileRoute("/_authenticated/visualization")({
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_authenticated/visualization")({
       {
         name: "description",
         content:
-          "Interactive XY cross-section plotter showing pre-work, design and post-work profiles with shaded cut and fill regions.",
+          "Explore EarthworkBD cross-sections by chainage with ground and design profiles, RL, cut/fill results, zoom, pan and PNG export.",
       },
       { property: "og:title", content: "Cross-Section Charts | BWDB Earthwork Estimator" },
       {
@@ -52,16 +52,21 @@ export const Route = createFileRoute("/_authenticated/visualization")({
 
 function VisualizationPage() {
   const project = useActiveProject();
-  const [idx, setIdx] = useState("0");
+  const [selectedChainage, setSelectedChainage] = useState<string | null>(null);
   if (!project) return <NoProject />;
 
-  const i = Number(idx);
-  const pre = project.pre[i];
-  const post = project.post[i];
+  const chainages = Array.from(new Set([...project.pre, ...project.post].map((s) => s.chainage))).filter(Number.isFinite).sort((a, b) => a - b);
+  const chainage = chainages.find((ch) => String(ch) === selectedChainage) ?? chainages[0];
+  const pre = project.pre.find((s) => s.chainage === chainage);
+  const post = project.post.find((s) => s.chainage === chainage);
+  const reference = pre ?? post;
   const cfg = project.config;
-  const design = pre ? designProfile(pre, cfg) : [];
-  const centerLine = pre ? resolvedCenterLine(pre, cfg) : null;
+  const design = reference ? designProfile(reference, cfg) : [];
+  const centerLine = reference ? resolvedCenterLine(reference, cfg) : null;
   const areas = pre ? sectionAreas(pre.points, design) : { cut: 0, fill: 0, net: 0 };
+
+  const width = chainage !== undefined ? designWidthAt(chainage, cfg) : undefined;
+  const level = chainage !== undefined ? designLevelAt(chainage, cfg) : undefined;
 
   const preColor = rgbToHex(cfg.colorPre);
   const postColor = rgbToHex(cfg.colorPostAdjusted);
@@ -94,30 +99,51 @@ function VisualizationPage() {
     <div className="space-y-6">
       <PageHeader
         title="Cross-Section Charts"
-        subtitle="XY plot of pre-work ground, design template and post-work profiles with cut / fill shading."
+        subtitle={project.name}
       />
       <div className="flex flex-wrap items-end gap-4">
         <div className="w-64 space-y-2">
-          <Label>Chainage</Label>
-          <Select value={idx} onValueChange={setIdx}>
-            <SelectTrigger>
+          <Label htmlFor="chainage-select">Chainage</Label>
+          <Select value={chainage !== undefined ? String(chainage) : ""} onValueChange={setSelectedChainage} disabled={!chainages.length}>
+            <SelectTrigger id="chainage-select">
               <SelectValue placeholder="Select chainage" />
             </SelectTrigger>
             <SelectContent>
-              {project.pre.map((s, n) => (
-                <SelectItem key={s.id} value={String(n)}>
-                  CH {s.chainage} {cfg.chainageUnit}
+              {chainages.map((ch) => (
+                <SelectItem key={ch} value={String(ch)}>
+                  CH {ch} {cfg.chainageUnit}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-2">
-          <Badge variant="secondary">Cut {fmt(areas.cut)} m²</Badge>
-          {!cfg.cutOnly && <Badge variant="secondary">Fill {fmt(areas.fill)} m²</Badge>}
-          <Badge>{cfg.cutOnly ? `Quantity ${fmt(areas.cut)} m²` : `Net ${fmt(areas.net)} m²`}</Badge>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="secondary">Cut {pre ? fmt(areas.cut) : "—"} m²</Badge>
+          <Badge variant="secondary">Fill {pre ? fmt(areas.fill) : "—"} m²</Badge>
+          <Badge variant="outline">{cfg.workType === "CANAL_EXCAVATION" ? "Bed" : "Crest"} width {width !== undefined ? fmt(width) : "—"} m</Badge>
+          <Badge variant="outline">Design RL {level !== undefined ? fmt(level, 3) : "—"} mSOB</Badge>
+          <Badge variant="outline">CL offset {centerLine !== null ? fmt(centerLine) : "—"} m</Badge>
+          <Badge variant="outline">Ground CL RL {centerLine !== null ? (interpAt(pre?.points ?? [], centerLine)?.toFixed(3) ?? "—") : "—"}</Badge>
         </div>
       </div>
+
+      <section className="space-y-3" aria-label="Interactive cross-section">
+        {!pre && post && <p className="text-sm text-muted-foreground">Pre-work survey unavailable at this chainage; cut and fill areas are unavailable.</p>}
+        <CrossSectionCanvas
+          key={`${project.id}:${chainage}`}
+          pre={pre?.points ?? []}
+          post={post?.points ?? []}
+          design={design}
+          centerLine={centerLine}
+          centerLineLabel={cfg.centerLineMode === "LOWEST_EARTH" ? "CL (lowest earth)" : "CL"}
+          title={chainage !== undefined ? `CH ${chainage} ${cfg.chainageUnit} · ${project.name}` : project.name}
+          designWidth={width}
+          designLevel={level}
+          cutArea={pre ? areas.cut : undefined}
+          fillArea={pre ? areas.fill : undefined}
+          colors={{ pre: cfg.colorPre, post: cfg.colorPostAdjusted, design: cfg.colorDesign }}
+        />
+      </section>
 
       <Card>
         <CardHeader>
@@ -213,25 +239,7 @@ function VisualizationPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Interactive Canvas Cross-Section</CardTitle>
-          <CardDescription>
-            1 m RL grid and 5 m offset grid — red dashed = pre-work RL, green solid = post-work RL,
-            grey dashed = design template, violet dotted = selected centre line
-            {cfg.centerLineMode === "LOWEST_EARTH" ? " (lowest-earth optimum)" : ""}. Hover to read levels.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CrossSectionCanvas
-            pre={pre?.points ?? []}
-            post={post?.points ?? []}
-            design={design}
-            centerLine={centerLine}
-            centerLineLabel={cfg.centerLineMode === "LOWEST_EARTH" ? "CL (lowest earth)" : "CL"}
-          />
-        </CardContent>
-      </Card>
+
 
     </div>
   );
