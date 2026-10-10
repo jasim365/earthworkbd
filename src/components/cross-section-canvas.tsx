@@ -164,7 +164,7 @@ export function CrossSectionCanvas({
       const levelPoints = design.filter((p) => p.rl === designLevel);
       const a = levelPoints[0]; const b = levelPoints[levelPoints.length - 1];
       if (a && b) {
-        const y = sy(designLevel) - 18;
+        const y = Math.max(PAD.top + 34, sy(designLevel) - 18);
         ctx.strokeStyle = resolve(available.find((s) => s.key === "design")?.color ?? "var(--section-design)");
         ctx.fillStyle = fg; ctx.textAlign = "center";
         ctx.beginPath(); ctx.moveTo(sx(a.distance), y); ctx.lineTo(sx(b.distance), y);
