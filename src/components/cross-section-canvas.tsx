@@ -123,7 +123,7 @@ export function CrossSectionCanvas({
     const niceStep = (range: number, count: number, minimum: number) => {
       const raw = Math.max(minimum, range / count);
       const power = 10 ** Math.floor(Math.log10(raw));
-      return [1, 2, 5, 10].find((n) => n * power >= raw) * power;
+      return ([1, 2, 5, 10].find((n) => n * power >= raw) ?? 10) * power;
     };
     const dx = niceStep(right - left, Math.max(2, plotW / 75), hStep / 20);
     const dy = niceStep(top - bottom, 6, vStep / 20);
@@ -161,7 +161,8 @@ export function CrossSectionCanvas({
       ctx.fillText(`${centerLineLabel} ${centerLine.toFixed(2)} m`, sx(centerLine) + (ctx.textAlign === "right" ? -6 : 6), PAD.top + 14);
     }
     if (designWidth !== undefined && designLevel !== undefined && design.length >= 4 && !hidden.includes("design")) {
-      const a = design[1]; const b = design[2];
+      const levelPoints = design.filter((p) => p.rl === designLevel);
+      const a = levelPoints[0]; const b = levelPoints[levelPoints.length - 1];
       if (a && b) {
         const y = sy(designLevel) - 18;
         ctx.strokeStyle = resolve(available.find((s) => s.key === "design")?.color ?? "var(--section-design)");
