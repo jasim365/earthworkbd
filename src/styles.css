@@ -51,6 +51,10 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-section-pre: var(--section-pre);
+  --color-section-post: var(--section-post);
+  --color-section-design: var(--section-design);
+  --color-section-center: var(--section-center);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -62,6 +66,10 @@
 }
 
 :root {
+  --section-pre: oklch(0.55 0.2 27);
+  --section-post: oklch(0.55 0.15 150);
+  --section-design: oklch(0.55 0.025 255);
+  --section-center: oklch(0.53 0.2 300);
   --radius: 0.5rem;
   --background: oklch(0.975 0.005 250);
   --foreground: oklch(0.24 0.03 255);
@@ -98,6 +106,10 @@
 }
 
 .dark {
+  --section-pre: oklch(0.72 0.19 27);
+  --section-post: oklch(0.75 0.17 150);
+  --section-design: oklch(0.8 0.025 255);
+  --section-center: oklch(0.75 0.17 300);
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
