@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAnalysisRouteImport } from './routes/_authenticated/analysis'
 import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated/design'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedSectionsRouteImport } from './routes/_authenticated/sections'
 import { Route as AuthenticatedVisualizationRouteImport } from './routes/_authenticated/visualization'
@@ -42,6 +43,11 @@ const AuthenticatedDesignRoute = AuthenticatedDesignRouteImport.update({
   path: '/design',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/analysis': typeof AuthenticatedAnalysisRoute
   '/design': typeof AuthenticatedDesignRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/sections': typeof AuthenticatedSectionsRoute
   '/visualization': typeof AuthenticatedVisualizationRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/analysis': typeof AuthenticatedAnalysisRoute
   '/design': typeof AuthenticatedDesignRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/sections': typeof AuthenticatedSectionsRoute
   '/visualization': typeof AuthenticatedVisualizationRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/analysis': typeof AuthenticatedAnalysisRoute
   '/_authenticated/design': typeof AuthenticatedDesignRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/sections': typeof AuthenticatedSectionsRoute
   '/_authenticated/visualization': typeof AuthenticatedVisualizationRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/analysis'
     | '/design'
+    | '/profile'
     | '/reports'
     | '/sections'
     | '/visualization'
@@ -103,6 +113,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/analysis'
     | '/design'
+    | '/profile'
     | '/reports'
     | '/sections'
     | '/visualization'
@@ -113,6 +124,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/analysis'
     | '/_authenticated/design'
+    | '/_authenticated/profile'
     | '/_authenticated/reports'
     | '/_authenticated/sections'
     | '/_authenticated/visualization'
@@ -161,6 +173,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDesignRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/reports': {
       id: '/_authenticated/reports'
       path: '/reports'
@@ -188,6 +207,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalysisRoute: typeof AuthenticatedAnalysisRoute
   AuthenticatedDesignRoute: typeof AuthenticatedDesignRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedSectionsRoute: typeof AuthenticatedSectionsRoute
   AuthenticatedVisualizationRoute: typeof AuthenticatedVisualizationRoute
@@ -197,6 +217,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalysisRoute: AuthenticatedAnalysisRoute,
   AuthenticatedDesignRoute: AuthenticatedDesignRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedSectionsRoute: AuthenticatedSectionsRoute,
   AuthenticatedVisualizationRoute: AuthenticatedVisualizationRoute,
