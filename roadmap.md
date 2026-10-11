@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Longitudinal existing-ground and formation RL charts: existing data, tooltips, zoom; nine tests passed, six calculation baselines unchanged; browser verified
+
 - [x] Interactive cross-section visualization: existing profiles and results, chainage selection, RL/offsets/width, zoom/pan, PNG export; baseline and browser checks passed
 
 - [x] Recalculation status indicator on Sectional Data — DONE (verified in browser: busy + idle states)

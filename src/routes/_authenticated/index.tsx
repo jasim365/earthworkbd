@@ -66,6 +66,8 @@ export const Route = createFileRoute("/_authenticated/")({
         property: "og:description",
         content: "Canal & embankment earthwork estimation dashboard with mean-area volume analysis.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Dashboard,

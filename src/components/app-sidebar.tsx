@@ -47,6 +47,7 @@ const groups = [
     label: "Drawings",
     items: [
       { title: "Cross Section", url: "/visualization", icon: LineChart },
+      { title: "Longitudinal Profile", url: "/profile", icon: TrendingUp },
     ],
   },
   {

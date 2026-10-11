@@ -68,6 +68,8 @@ export const Route = createFileRoute("/_authenticated/sections")({
         property: "og:description",
         content: "Editable survey data grids for pre-work and post-work canal cross-sections.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: SectionsPage,
