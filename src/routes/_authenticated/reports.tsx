@@ -44,6 +44,8 @@ export const Route = createFileRoute("/_authenticated/reports")({
         property: "og:description",
         content: "Abstract and detailed earthwork estimate tables, printable or exportable as CSV.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: ReportsPage,

@@ -54,6 +54,8 @@ export const Route = createFileRoute("/_authenticated/analysis")({
         property: "og:description",
         content: "Mean-area volume computation, gap handling and pre vs post progress analysis.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AnalysisPage,
