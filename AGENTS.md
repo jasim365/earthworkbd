@@ -13,3 +13,4 @@
 - `src/lib/earthwork/calc.ts` is the locked calculation engine; every other layer (UI, store, import/export, charts, reports) only calls it and never duplicates its formulas — the user requires calculation results to stay identical unless they explicitly approve a change.
 - `src/lib/earthwork/__tests__/calc-baseline.test.ts` must pass unchanged (`bun test src/lib/earthwork`) — it proves quantities are identical to the approved baseline.
 - Cross-section interaction uses d3-zoom on a canvas with fixed axes; drawing and export are presentation-only and consume the locked engine's profiles/interpolation/results to prevent calculation drift.
+- Longitudinal profiles use a presentation-only adapter calling the locked engine for ground RL at the resolved centre line and formation RL; d3-zoom controls only the chainage viewport so source data and quantities never change.
